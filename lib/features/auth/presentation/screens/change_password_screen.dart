@@ -1,241 +1,171 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/dashboard/web_auth_layout.dart';
+import '../../../../core/widgets/dashboard/auth_button.dart';
+import '../../../../core/widgets/dashboard/error_banner.dart';
+import '../../../../core/widgets/dashboard/password_strength.dart';
+import '../../../../core/constants/app_routes.dart';
 
-/// شاشة تغيير كلمة المرور الإجباري — أول تسجيل دخول
-/// REQ-Auth-07: يُجبر النظام المستخدم على تغيير كلمة المرور المؤقتة
-/// REQ-Auth-08: يرفض النظام أي عملية حتى يتم التغيير
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+  final bool isDriver;
+  const ChangePasswordScreen({super.key, this.isDriver = false});
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final _formKey     = GlobalKey<FormState>();
-  final _otpCtrl     = TextEditingController();
-  final _newPassCtrl = TextEditingController();
+  final _currentCtrl = TextEditingController();
+  final _newCtrl     = TextEditingController();
   final _confirmCtrl = TextEditingController();
-  bool _loading      = false;
+  final _formKey     = GlobalKey<FormState>();
 
-  // Password strength checks
-  bool get _hasMin8    => _newPassCtrl.text.length >= 8;
-  bool get _hasNumber  => _newPassCtrl.text.contains(RegExp(r'\d'));
-  bool get _hasSpecial => _newPassCtrl.text.contains(RegExp(r'[!@#\$%^&*]'));
+  bool get _hasMin8    => _newCtrl.text.length >= 8;
+  bool get _hasNumber  => _newCtrl.text.contains(RegExp(r'\d'));
+  bool get _hasSpecial => _newCtrl.text.contains(RegExp(r'[!@#\$%^&*]'));
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthBloc>().add(
+        ChangePasswordEvent(_currentCtrl.text, _newCtrl.text,
+            isDriver: widget.isDriver));
+  }
 
   @override
   void dispose() {
-    _otpCtrl.dispose();
-    _newPassCtrl.dispose();
-    _confirmCtrl.dispose();
+    _currentCtrl.dispose(); _newCtrl.dispose(); _confirmCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-
-    // TODO: AuthBloc.add(ChangePasswordEvent(...))
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          // ── Header ────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              bottom: 24,
-              left: 20,
-              right: 20,
-            ),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // لا يوجد زر رجوع — الشاشة إجبارية
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.lock_reset, color: Colors.white, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'مطلوب عند أول تسجيل دخول',
-                        style: AppTextStyles.caption.copyWith(color: Colors.white.withOpacity(.9)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('تغيير كلمة المرور', style: AppTextStyles.displayMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'أنشئ كلمة مرور جديدة للبدء',
-                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withOpacity(.7)),
-                ),
-              ],
-            ),
-          ),
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (ctx, state) {
+        if (state is PasswordChanged) {
+          final route = widget.isDriver ? AppRoutes.driverHome : AppRoutes.adminDashboard;
+          Navigator.pushReplacementNamed(ctx, route);
+        }
+      },
+      builder: (ctx, state) {
+        final loading = state is AuthLoading;
+        final error   = state is AuthFailure ? state.message : null;
 
-          // ── Body ──────────────────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+        return WebAuthLayout(cardWidth: 440, child: Form(
+          key: _formKey,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('تغيير كلمة المرور',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 4),
+            const Text('يجب تغيير كلمة المرور المؤقتة قبل المتابعة',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            const SizedBox(height: 20),
 
-                    // تنبيه إجباري
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningSurface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.warning.withOpacity(.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'يجب تغيير كلمة المرور المؤقتة قبل استخدام التطبيق.',
-                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // كلمة المرور المؤقتة
-                    AppTextField(
-                      label: 'كلمة المرور المؤقتة',
-                      hint: 'أدخل الكلمة المؤقتة من المدير',
-                      controller: _otpCtrl,
-                      prefixIcon: Icons.vpn_key_outlined,
-                      isPassword: true,
-                      validator: (v) => (v == null || v.isEmpty) ? 'هذا الحقل مطلوب' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // كلمة المرور الجديدة
-                    AppTextField(
-                      label: 'كلمة المرور الجديدة',
-                      hint: '8 أحرف على الأقل',
-                      controller: _newPassCtrl,
-                      prefixIcon: Icons.lock_outline,
-                      isPassword: true,
-                      onChanged: (_) => setState(() {}),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'هذا الحقل مطلوب';
-                        if (!_hasMin8) return 'يجب أن تكون 8 أحرف على الأقل';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-
-                    // مؤشر قوة كلمة المرور
-                    _PasswordStrengthRow(
-                      label: '8 أحرف على الأقل',
-                      met: _hasMin8,
-                    ),
-                    const SizedBox(height: 4),
-                    _PasswordStrengthRow(
-                      label: 'رقم واحد على الأقل',
-                      met: _hasNumber,
-                    ),
-                    const SizedBox(height: 4),
-                    _PasswordStrengthRow(
-                      label: 'رمز خاص (!@#\$)',
-                      met: _hasSpecial,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // تأكيد كلمة المرور
-                    AppTextField(
-                      label: 'تأكيد كلمة المرور الجديدة',
-                      hint: 'أعد كلمة المرور',
-                      controller: _confirmCtrl,
-                      prefixIcon: Icons.lock_outline,
-                      isPassword: true,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _onSave(),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'هذا الحقل مطلوب';
-                        if (v != _newPassCtrl.text) return 'كلمتا المرور غير متطابقتان';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 28),
-
-                    AppButton(
-                      label: 'حفظ وتسجيل الدخول',
-                      onPressed: _onSave,
-                      isLoading: _loading,
-                      icon: Icons.check_circle_outline,
-                    ),
-                  ],
-                ),
+            // Warning box
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warningSurface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning.withOpacity(.4)),
               ),
+              child: Row(children: [
+                const Icon(Icons.info_outline, color: AppColors.warning, size: 16),
+                const SizedBox(width: 8),
+                const Expanded(child: Text(
+                    'لأسباب أمنية، يجب تعيين كلمة مرور جديدة قبل استخدام النظام.',
+                    style: TextStyle(fontSize: 12, color: AppColors.warning))),
+              ]),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(height: 20),
+
+            if (error != null) ...[ErrorBanner(error), const SizedBox(height: 14)],
+
+            _Label('كلمة المرور الحالية (المؤقتة)'),
+            const SizedBox(height: 6),
+            _PassField(controller: _currentCtrl,
+                validator: (v) => (v?.isEmpty ?? true) ? 'مطلوب' : null),
+            const SizedBox(height: 14),
+
+            _Label('كلمة المرور الجديدة'),
+            const SizedBox(height: 6),
+            _PassField(
+              controller: _newCtrl,
+              onChanged: (_) => setState(() {}),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'مطلوب';
+                if (!_hasMin8) return '8 أحرف على الأقل';
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
+            PasswordStrengthRow(label: '8 أحرف على الأقل', met: _hasMin8),
+            const SizedBox(height: 3),
+            PasswordStrengthRow(label: 'رقم واحد على الأقل', met: _hasNumber),
+            const SizedBox(height: 3),
+            PasswordStrengthRow(label: 'رمز خاص (!@#\$)', met: _hasSpecial),
+            const SizedBox(height: 14),
+
+            _Label('تأكيد كلمة المرور'),
+            const SizedBox(height: 6),
+            _PassField(
+              controller: _confirmCtrl,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              validator: (v) => v != _newCtrl.text ? 'كلمتا المرور غير متطابقتان' : null,
+            ),
+            const SizedBox(height: 24),
+
+            AuthButton(label: 'حفظ وتسجيل الدخول', onPressed: _submit, isLoading: loading),
+          ]),
+        ));
+      },
     );
   }
 }
 
-/// صف واحد من متطلبات كلمة المرور
-class _PasswordStrengthRow extends StatelessWidget {
-  final String label;
-  final bool met;
+class _Label extends StatelessWidget {
+  final String t;
+  const _Label(this.t);
+  @override
+  Widget build(BuildContext context) => Text(t,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary));
+}
 
-  const _PasswordStrengthRow({required this.label, required this.met});
+class _PassField extends StatefulWidget {
+  final TextEditingController controller;
+  final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
+  final void Function(String)? onSubmitted;
+  final TextInputAction textInputAction;
+
+  const _PassField({required this.controller, this.validator,
+      this.onChanged, this.onSubmitted,
+      this.textInputAction = TextInputAction.next});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          met ? Icons.check_circle : Icons.radio_button_unchecked,
-          size: 16,
-          color: met ? AppColors.success : AppColors.textHint,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: met ? AppColors.success : AppColors.textHint,
-            fontWeight: met ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
+  State<_PassField> createState() => _PassFieldState();
+}
+
+class _PassFieldState extends State<_PassField> {
+  bool _obscure = true;
+  @override
+  Widget build(BuildContext context) => TextFormField(
+    controller: widget.controller,
+    obscureText: _obscure,
+    textInputAction: widget.textInputAction,
+    onChanged: widget.onChanged,
+    onFieldSubmitted: widget.onSubmitted,
+    validator: widget.validator,
+    decoration: InputDecoration(
+      suffixIcon: GestureDetector(
+        onTap: () => setState(() => _obscure = !_obscure),
+        child: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            color: AppColors.textHint, size: 18),
+      ),
+    ),
+  );
 }

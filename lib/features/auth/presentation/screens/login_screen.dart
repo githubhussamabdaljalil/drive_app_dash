@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/dashboard/web_auth_layout.dart';
+import '../../../../core/widgets/dashboard/auth_button.dart';
+import '../../../../core/widgets/dashboard/error_banner.dart';
+import '../../../../core/constants/app_routes.dart';
+import 'role_selector_screen.dart';
 
-/// شاشة تسجيل الدخول
-/// REQ-Auth-01: تسجيل الدخول بالبريد الإلكتروني وكلمة المرور
-/// REQ-Auth-09: السائق يسجل دخوله بالبريد وكلمة المرور
+/// Login Screen — shows different form based on selected role
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String role; // 'owner' | 'manager' | 'driver'
+  const LoginScreen({super.key, required this.role});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -17,156 +19,172 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey    = GlobalKey<FormState>();
-  final _emailCtrl  = TextEditingController();
+  final _field1Ctrl = TextEditingController(); // email or phone
   final _passCtrl   = TextEditingController();
-  bool _loading     = false;
+  bool _obscure = true;
+
+  bool get _isDriver => widget.role == 'driver';
 
   @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _field1Ctrl.dispose(); _passCtrl.dispose(); super.dispose(); }
 
-  Future<void> _onLogin() async {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-
-    // TODO: AuthBloc.add(LoginEvent(email, password))
-    await Future.delayed(const Duration(seconds: 1)); // placeholder
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-
-    // إذا كلمة المرور مؤقتة → صفحة التغيير الإجباري (REQ-Auth-07)
-    // وإلا → الهوم
-    const bool isFirstLogin = true; // سيجي من الـ API
-    if (isFirstLogin) {
-      Navigator.pushReplacementNamed(context, AppRoutes.changePassword);
+    if (_isDriver) {
+      context.read<AuthBloc>().add(DriverLoginEvent(_field1Ctrl.text.trim(), _passCtrl.text));
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      context.read<AuthBloc>().add(AdminLoginEvent(_field1Ctrl.text.trim(), _passCtrl.text));
     }
   }
 
+  String get _roleLabel => switch (widget.role) {
+    'owner'   => 'المالك',
+    'manager' => 'المدير',
+    _         => 'السائق',
+  };
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Column(
-        children: [
-          // ── Hero Section ──────────────────────────────────────────
-          Expanded(
-            flex: 4,
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(.15),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withOpacity(.3), width: 1.5),
-                    ),
-                    child: const Icon(Icons.local_shipping_outlined, size: 42, color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('VTFMS', style: AppTextStyles.displayLarge),
-                  const SizedBox(height: 4),
-                  Text(
-                    'نظام إدارة وتتبع الأسطول',
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withOpacity(.7)),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (ctx, state) {
+        if (state is AdminLoginSuccess) {
+          if (state.challengeToken != null) {
+            Navigator.pushNamed(ctx, AppRoutes.verifyTotp,
+                arguments: state.challengeToken);
+          } else {
+            Navigator.pushReplacementNamed(ctx, AppRoutes.adminDashboard);
+          }
+        } else if (state is DriverLoginSuccess) {
+          if (state.requiresOtp) {
+            Navigator.pushNamed(ctx, AppRoutes.verifyOtp,
+                arguments: _field1Ctrl.text.trim());
+          } else {
+            Navigator.pushReplacementNamed(ctx, AppRoutes.driverHome);
+          }
+        } else if (state is MustChangePassword) {
+          Navigator.pushNamed(ctx, AppRoutes.changePassword,
+              arguments: {'isDriver': state.isDriver});
+        }
+      },
+      builder: (ctx, state) {
+        final loading = state is AuthLoading;
+        final error   = state is AuthFailure ? state.message : null;
 
-          // ── Form Card ────────────────────────────────────────────
-          Expanded(
-            flex: 6,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('تسجيل الدخول', style: AppTextStyles.h1),
-                    const SizedBox(height: 4),
-                    Text('أدخل بياناتك للمتابعة', style: AppTextStyles.bodyMedium),
-                    const SizedBox(height: 24),
+        return WebAuthLayout(
+          child: Form(
+            key: _formKey,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                    AppTextField(
-                      label: 'البريد الإلكتروني',
-                      hint: 'driver@company.com',
-                      controller: _emailCtrl,
-                      prefixIcon: Icons.mail_outline,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'البريد مطلوب';
-                        if (!v.contains('@')) return 'بريد إلكتروني غير صحيح';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+              // Role badge
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('مرحبًا بعودتك',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 3),
+                  Text('تسجيل دخول كـ $_roleLabel',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                ]),
+                _RoleBadge(role: widget.role),
+              ]),
+              const SizedBox(height: 28),
 
-                    AppTextField(
-                      label: 'كلمة المرور',
-                      hint: '••••••••',
-                      controller: _passCtrl,
-                      prefixIcon: Icons.lock_outline,
-                      isPassword: true,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _onLogin(),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'كلمة المرور مطلوبة';
-                        if (v.length < 6) return 'كلمة المرور قصيرة جدًا';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
+              if (error != null) ...[ErrorBanner(error), const SizedBox(height: 16)],
 
-                    // نسيت كلمة المرور
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: TextButton(
-                        onPressed: () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
-                        child: const Text('نسيت كلمة المرور؟', style: AppTextStyles.btnText),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    AppButton(
-                      label: 'تسجيل الدخول',
-                      onPressed: _onLogin,
-                      isLoading: _loading,
-                      icon: Icons.login_rounded,
-                    ),
-
-                    const Spacer(),
-
-                    // إصدار التطبيق
-                    Center(
-                      child: Text('VTFMS Driver v1.0.0', style: AppTextStyles.caption),
-                    ),
-                  ],
+              // Field 1 — email or phone
+              _FieldLabel(_isDriver ? 'رقم الهاتف' : 'البريد الإلكتروني'),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _field1Ctrl,
+                keyboardType: _isDriver ? TextInputType.phone : TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  hintText: _isDriver ? '09xxxxxxxx' : 'email@company.com',
                 ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'هذا الحقل مطلوب';
+                  return null;
+                },
               ),
-            ),
+              const SizedBox(height: 16),
+
+              // Password
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const _FieldLabel('كلمة المرور'),
+                if (!_isDriver)
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(ctx, AppRoutes.forgotPassword),
+                    child: const Text('نسيت كلمة المرور؟',
+                        style: TextStyle(fontSize: 12, color: AppColors.primary,
+                            fontWeight: FontWeight.w500)),
+                  ),
+              ]),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _passCtrl,
+                obscureText: _obscure,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  hintText: 'كلمة المرور',
+                  suffixIcon: GestureDetector(
+                    onTap: () => setState(() => _obscure = !_obscure),
+                    child: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: AppColors.textHint, size: 18),
+                  ),
+                ),
+                validator: (v) => (v == null || v.isEmpty) ? 'كلمة المرور مطلوبة' : null,
+              ),
+              const SizedBox(height: 24),
+
+              AuthButton(label: 'تسجيل الدخول', onPressed: _submit, isLoading: loading),
+              const SizedBox(height: 20),
+
+              // Back to role selector
+              Center(child: GestureDetector(
+                onTap: () => Navigator.pushReplacementNamed(ctx, AppRoutes.roleSelector),
+                child: const Text('← تغيير الدور',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              )),
+            ]),
           ),
-        ],
+        );
+      },
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  const _FieldLabel(this.label);
+  @override
+  Widget build(BuildContext context) => Text(label,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary));
+}
+
+class _RoleBadge extends StatelessWidget {
+  final String role;
+  const _RoleBadge({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon, label) = switch (role) {
+      'owner'   => (const Color(0xFF7B1FA2), Icons.admin_panel_settings, 'مالك'),
+      'manager' => (AppColors.primary, Icons.manage_accounts, 'مدير'),
+      _         => (AppColors.success, Icons.drive_eta, 'سائق'),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.1),
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 5),
+        Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+      ]),
     );
   }
 }

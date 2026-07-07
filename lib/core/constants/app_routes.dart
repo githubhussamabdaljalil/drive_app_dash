@@ -1,23 +1,36 @@
-/// AppRoutes — مرجع مركزي لكل routes في التطبيق
-/// كل route مسجل هنا بحيث ما في magic strings مكررة
 class AppRoutes {
   AppRoutes._();
 
-  static const String login         = '/login';
+  // ── Auth ────────────────────────────────────────────────────────────
+  static const String roleSelector   = '/';
+  static const String login          = '/login';
+  static const String verifyOtp      = '/verify-otp';
+  static const String verifyTotp     = '/verify-totp';
   static const String changePassword = '/change-password';
   static const String forgotPassword = '/forgot-password';
 
-  static const String home           = '/';
-  static const String notifications  = '/notifications';
-  static const String profile        = '/profile';
+  // ── Admin (owner + manager) ─────────────────────────────────────────
+  static const String adminDashboard = '/admin/dashboard';
+  static const String companies      = '/admin/companies';
+  static const String vehicles       = '/admin/vehicles';
+  static const String drivers        = '/admin/drivers';
+  static const String destinations   = '/admin/destinations';
+  static const String tracking       = '/admin/tracking';
+  static const String sosEvents      = '/admin/sos-events';
+  static const String routeHistory   = '/admin/route-history';
+  static const String qrCodes        = '/admin/qr-codes';
+  static const String subManagers    = '/admin/sub-managers';
+  static const String guestCodes     = '/admin/guest-codes';
+  static const String notifications  = '/admin/notifications';
+  static const String reports        = '/admin/reports';
 
-  static const String attendance     = '/attendance';
-  static const String vehicleLinking = '/vehicle-linking';
-  static const String qrScanner     = '/qr-scanner';
-
-  static const String route          = '/route';
-  static const String navigation     = '/navigation';
-  static const String routeHistory   = '/route-history';
-
-  static const String emergency      = '/emergency';
+  // ── Driver ──────────────────────────────────────────────────────────
+  static const String driverHome     = '/driver/home';
+  static const String route          = '/driver/route';
+  static const String attendance     = '/driver/attendance';
+  static const String vehicleLinking = '/driver/vehicle-link';
+  static const String driverNotif    = '/driver/notifications';
+  static const String driverHistory  = '/driver/route-history';
+  static const String emergency      = '/driver/sos';
+  static const String profile        = '/driver/profile';
 }

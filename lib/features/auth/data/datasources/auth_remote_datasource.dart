@@ -1,58 +1,89 @@
+import '../../../../core/services/api/api_client.dart';
 import '../models/user_model.dart';
 
-abstract class AuthRemoteDataSource {
-  Future<UserModel> login(String email, String password);
-  Future<void> changePassword(String tempPassword, String newPassword);
-  Future<void> sendResetCode(String email);
-  Future<void> verifyResetCode(String code);
-  Future<void> saveNewPassword(String newPassword);
-  Future<void> logout();
-  Future<UserModel?> getCurrentUser();
-  Future<void> updateProfile(String name);
-}
+/// ─── Admin Auth  POST /admin/auth/*
+/// ─── Driver Auth POST /driver/auth/*
+class AuthRemoteDataSource {
+  final ApiClient _api = ApiClient.instance;
 
-/// TODO: استبدل بالـ implementation الحقيقي مع Dio
-class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  // final DioClient dioClient;
-  // AuthRemoteDataSourceImpl(this.dioClient);
+  // ══ ADMIN ════════════════════════════════════════════════════════════
 
-  @override
-  Future<UserModel> login(String email, String password) {
-    throw UnimplementedError('TODO: POST /auth/login');
-  }
+  /// POST /admin/auth/login  →  {token, user:{role:'owner'|'manager'...}}
+  Future<Map<String, dynamic>> adminLogin(String email, String password) =>
+      _api.post('/admin/auth/login', {
+        'email': email,
+        'password': password,
+      }, auth: false);
 
-  @override
-  Future<void> changePassword(String tempPassword, String newPassword) {
-    throw UnimplementedError('TODO: POST /auth/change-password');
-  }
+  /// POST /admin/auth/verify-totp  (2FA step 2)
+  Future<Map<String, dynamic>> adminVerifyTotp(
+          String challengeToken, String code) =>
+      _api.post('/admin/auth/verify-totp', {
+        'challenge_token': challengeToken,
+        'code': code,
+      }, auth: false);
 
-  @override
-  Future<void> sendResetCode(String email) {
-    throw UnimplementedError('TODO: POST /auth/reset-password');
-  }
+  /// POST /admin/auth/change-password
+  Future<Map<String, dynamic>> adminChangePassword(
+          String current, String newPass) =>
+      _api.post('/admin/auth/change-password', {
+        'current_password': current,
+        'new_password': newPass,
+        'new_password_confirmation': newPass,
+      });
 
-  @override
-  Future<void> verifyResetCode(String code) {
-    throw UnimplementedError('TODO: POST /auth/verify-code');
-  }
+  /// POST /admin/auth/forgot-password
+  Future<Map<String, dynamic>> adminForgotPassword(String email) =>
+      _api.post('/admin/auth/forgot-password', {'email': email}, auth: false);
 
-  @override
-  Future<void> saveNewPassword(String newPassword) {
-    throw UnimplementedError('TODO: POST /auth/save-password');
-  }
+  /// POST /admin/auth/verify-reset-code
+  Future<Map<String, dynamic>> adminVerifyResetCode(
+          String email, String code) =>
+      _api.post('/admin/auth/verify-reset-code',
+          {'email': email, 'code': code}, auth: false);
 
-  @override
-  Future<void> logout() {
-    throw UnimplementedError('TODO: POST /auth/logout');
-  }
+  /// POST /admin/auth/reset-password
+  Future<Map<String, dynamic>> adminResetPassword(
+          String email, String code, String newPass) =>
+      _api.post('/admin/auth/reset-password', {
+        'email': email,
+        'code': code,
+        'new_password': newPass,
+        'new_password_confirmation': newPass,
+      }, auth: false);
 
-  @override
-  Future<UserModel?> getCurrentUser() {
-    throw UnimplementedError('TODO: GET /auth/me');
-  }
+  /// GET /admin/auth/me
+  Future<Map<String, dynamic>> adminMe() => _api.get('/admin/auth/me');
 
-  @override
-  Future<void> updateProfile(String name) {
-    throw UnimplementedError('TODO: PATCH /auth/profile');
-  }
+  /// POST /admin/auth/logout
+  Future<void> adminLogout() => _api.post('/admin/auth/logout', {});
+
+  // ══ DRIVER ═══════════════════════════════════════════════════════════
+
+  /// POST /driver/auth/login  →  {token, requires_otp, user}
+  Future<Map<String, dynamic>> driverLogin(String phone, String password) =>
+      _api.post('/driver/auth/login', {
+        'phone': phone,
+        'password': password,
+      }, auth: false);
+
+  /// POST /driver/auth/verify-otp
+  Future<Map<String, dynamic>> driverVerifyOtp(String phone, String code) =>
+      _api.post('/driver/auth/verify-otp',
+          {'phone': phone, 'code': code}, auth: false);
+
+  /// GET /driver/auth/me  (profile + company + vehicle)
+  Future<Map<String, dynamic>> driverMe() => _api.get('/driver/auth/me');
+
+  /// POST /driver/auth/change-password
+  Future<Map<String, dynamic>> driverChangePassword(
+          String current, String newPass) =>
+      _api.post('/driver/auth/change-password', {
+        'current_password': current,
+        'new_password': newPass,
+        'new_password_confirmation': newPass,
+      });
+
+  /// POST /driver/auth/logout
+  Future<void> driverLogout() => _api.post('/driver/auth/logout', {});
 }

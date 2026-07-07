@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
-/// حقل نص موحد — يُستخدم في كل الفيتشرات
 class AppTextField extends StatefulWidget {
   final String label;
   final String? hint;
@@ -43,7 +42,7 @@ class _AppTextFieldState extends State<AppTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label, style: AppTextStyles.labelCap),
+        Text(widget.label, style: AppTextStyles.label),
         const SizedBox(height: 6),
         TextFormField(
           controller: widget.controller,
@@ -53,19 +52,18 @@ class _AppTextFieldState extends State<AppTextField> {
           onChanged: widget.onChanged,
           onFieldSubmitted: widget.onSubmitted,
           enabled: widget.enabled,
-          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: AppColors.primary, size: 20)
+                ? Icon(widget.prefixIcon, color: AppColors.textHint, size: 18)
                 : null,
             suffixIcon: widget.isPassword
                 ? GestureDetector(
                     onTap: () => setState(() => _obscure = !_obscure),
                     child: Icon(
                       _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      color: AppColors.textHint,
-                      size: 20,
+                      color: AppColors.textHint, size: 18,
                     ),
                   )
                 : null,

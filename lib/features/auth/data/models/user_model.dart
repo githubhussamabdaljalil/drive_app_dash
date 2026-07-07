@@ -1,30 +1,51 @@
-import '../../domain/entities/user_entity.dart';
+/// Role constants
+class UserRole {
+  static const String owner   = 'owner';
+  static const String manager = 'manager';
+  static const String driver  = 'driver';
+}
 
-class UserModel extends UserEntity {
+class UserModel {
+  final String id;
+  final String name;
+  final String email;
+  final String role;          // owner | manager | driver
+  final bool isFirstLogin;    // must_change_password flag from API
+  final String? phone;
+  final String? vehiclePlate; // driver only
+
   const UserModel({
-    required super.id,
-    required super.email,
-    required super.name,
-    required super.role,
-    required super.isFirstLogin,
-    super.linkedVehicleId,
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.isFirstLogin,
+    this.phone,
+    this.vehiclePlate,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-    id:             json['id'] as String,
-    email:          json['email'] as String,
-    name:           json['name'] as String,
-    role:           json['role'] as String,
-    isFirstLogin:   json['is_first_login'] as bool? ?? false,
-    linkedVehicleId: json['linked_vehicle_id'] as String?,
-  );
+  factory UserModel.fromAdminJson(Map<String, dynamic> json) {
+    final user = json['user'] ?? json;
+    return UserModel(
+      id:           user['id'].toString(),
+      name:         user['name'] ?? '',
+      email:        user['email'] ?? '',
+      role:         user['role'] ?? UserRole.manager,
+      isFirstLogin: user['must_change_password'] == true,
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'email': email,
-    'name': name,
-    'role': role,
-    'is_first_login': isFirstLogin,
-    'linked_vehicle_id': linkedVehicleId,
-  };
+  factory UserModel.fromDriverJson(Map<String, dynamic> json) {
+    final user = json['user'] ?? json;
+    final vehicle = user['vehicle'];
+    return UserModel(
+      id:           user['id'].toString(),
+      name:         user['name'] ?? '',
+      email:        user['email'] ?? user['phone'] ?? '',
+      role:         UserRole.driver,
+      isFirstLogin: user['must_change_password'] == true,
+      phone:        user['phone'],
+      vehiclePlate: vehicle?['plate_number'],
+    );
+  }
 }

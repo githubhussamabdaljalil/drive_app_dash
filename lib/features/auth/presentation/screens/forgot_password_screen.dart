@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
+import '../cubit/auth_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/web_auth_layout.dart';
 import '../../../../core/widgets/dashboard/auth_button.dart';
@@ -32,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
+    return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
         if (state is ResetCodeSent)     setState(() { _email = _emailCtrl.text.trim(); _step = 1; });
         if (state is ResetCodeVerified) setState(() { _code = state.code; _step = 2; });
@@ -73,18 +73,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             // Step body
             if (_step == 0) _StepEmail(
               ctrl: _emailCtrl, loading: loading,
-              onSend: () => ctx.read<AuthBloc>().add(
-                  ForgotPasswordEvent(_emailCtrl.text.trim())),
+              onSend: () => ctx.read<AuthCubit>().forgotPassword(_emailCtrl.text.trim()),
             ),
             if (_step == 1) _StepCode(
               ctrl: _codeCtrl, email: _email, loading: loading,
-              onVerify: () => ctx.read<AuthBloc>().add(
-                  VerifyResetCodeEvent(_email, _codeCtrl.text.trim())),
+              onVerify: () => ctx.read<AuthCubit>().verifyResetCode(_email, _codeCtrl.text.trim()),
             ),
             if (_step == 2) _StepNewPass(
               passCtrl: _passCtrl, confirmCtrl: _confirmCtrl, loading: loading,
-              onSave: () => ctx.read<AuthBloc>().add(
-                  ResetPasswordEvent(_email, _code, _passCtrl.text)),
+              onSave: () => ctx.read<AuthCubit>().resetPassword(_email, _code, _passCtrl.text),
             ),
           ],
         ));

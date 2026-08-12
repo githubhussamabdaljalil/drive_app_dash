@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
+import '../cubit/auth_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/web_auth_layout.dart';
 import '../../../../core/widgets/dashboard/auth_button.dart';
@@ -31,9 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     if (_isDriver) {
-      context.read<AuthBloc>().add(DriverLoginEvent(_field1Ctrl.text.trim(), _passCtrl.text));
+      context.read<AuthCubit>().driverLogin(_field1Ctrl.text.trim(), _passCtrl.text);
     } else {
-      context.read<AuthBloc>().add(AdminLoginEvent(_field1Ctrl.text.trim(), _passCtrl.text));
+      context.read<AuthCubit>().adminLogin(_field1Ctrl.text.trim(), _passCtrl.text);
     }
   }
 
@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
+    return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
         if (state is AdminLoginSuccess) {
           if (state.challengeToken != null) {

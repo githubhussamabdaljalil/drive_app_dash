@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
+import '../cubit/auth_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/web_auth_layout.dart';
 import '../../../../core/widgets/dashboard/auth_button.dart';
@@ -24,13 +24,21 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final _codeCtrl = TextEditingController();
 
   void _submit() {
-    final code = _codeCtrl.text.trim();
+    final code = _codeCtrl.text.trim().replaceAll(' ', '');
     if (code.isEmpty) return;
     if (widget.isTotp) {
-      context.read<AuthBloc>().add(
-          AdminVerifyTotpEvent(widget.challengeToken!, code));
+      if (widget.challengeToken == null || widget.challengeToken!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('انتهت الجلسة، يرجى تسجيل الدخول مجدداً'),
+              backgroundColor: AppColors.danger),
+        );
+        Navigator.pushReplacementNamed(context, AppRoutes.login,
+            arguments: 'manager');
+        return;
+      }
+      context.read<AuthCubit>().adminVerifyTotp(widget.challengeToken!, code);
     } else {
-      context.read<AuthBloc>().add(DriverVerifyOtpEvent(widget.phone, code));
+      context.read<AuthCubit>().driverVerifyOtp(widget.phone, code);
     }
   }
 
@@ -39,10 +47,13 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
+    return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
-        if (state is AdminLoginSuccess) {
+        if (state is AdminLoginSuccess && state.challengeToken == null) {
           Navigator.pushReplacementNamed(ctx, AppRoutes.adminDashboard);
+        } else if (state is MustChangePassword) {
+          Navigator.pushReplacementNamed(ctx, AppRoutes.changePassword,
+              arguments: {'isDriver': state.isDriver});
         } else if (state is DriverLoginSuccess && !state.requiresOtp) {
           Navigator.pushReplacementNamed(ctx, AppRoutes.driverHome);
         }
@@ -74,9 +85,32 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               controller: _codeCtrl,
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
+              maxLength: 6,
               onFieldSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(hintText: '------'),
+              decoration: const InputDecoration(
+                hintText: '000000',
+                counterText: '',
+              ),
             ),
+            if (widget.isTotp && (widget.challengeToken == null || widget.challengeToken!.isEmpty))
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerSurface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(child: Text(
+                      'انتهت الجلسة، يرجى تسجيل الدخول مجدداً',
+                      style: TextStyle(fontSize: 12, color: AppColors.danger),
+                    )),
+                  ]),
+                ),
+              ),
             const SizedBox(height: 24),
 
             AuthButton(label: 'تأكيد', onPressed: _submit, isLoading: loading),

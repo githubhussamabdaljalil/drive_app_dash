@@ -101,7 +101,8 @@ class _Sidebar extends StatelessWidget {
             isActive: false, color: AppColors.danger,
             onTap: () {
               LocalStorageService.instance.clearAll();
-              Navigator.pushReplacementNamed(context, AppRoutes.roleSelector);
+              Navigator.pushNamedAndRemoveUntil(
+                  context, AppRoutes.roleSelector, (route) => false);
             }),
         const SizedBox(height: 8),
       ]),
@@ -160,8 +161,11 @@ class _Sidebar extends StatelessWidget {
           icon: d.icon,
           label: d.label,
           isActive: active == d.route,
-          onTap: () => active != d.route
-              ? Navigator.pushReplacementNamed(ctx, d.route) : null)),
+          onTap: () {
+            if (active == d.route) return;
+            Navigator.pushNamedAndRemoveUntil(
+              ctx, d.route, (route) => false);
+          })),
     ];
   }
 

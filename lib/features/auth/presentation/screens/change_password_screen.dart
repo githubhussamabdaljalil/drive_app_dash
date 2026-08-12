@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
+import '../cubit/auth_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/web_auth_layout.dart';
 import '../../../../core/widgets/dashboard/auth_button.dart';
@@ -28,9 +28,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<AuthBloc>().add(
-        ChangePasswordEvent(_currentCtrl.text, _newCtrl.text,
-            isDriver: widget.isDriver));
+    context.read<AuthCubit>().changePassword(
+        _currentCtrl.text, _newCtrl.text,
+        isDriver: widget.isDriver);
   }
 
   @override
@@ -41,7 +41,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
+    return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
         if (state is PasswordChanged) {
           final route = widget.isDriver ? AppRoutes.driverHome : AppRoutes.adminDashboard;

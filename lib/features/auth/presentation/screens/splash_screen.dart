@@ -64,9 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToHome(String role) {
     final route = switch (role) {
-      'owner' => AppRoutes.adminDashboard,
-      'manager' => AppRoutes.adminDashboard,
-      'driver' => AppRoutes.driverHome,
+      'owner' || 'manager' => AppRoutes.adminDashboard,
       _ => AppRoutes.roleSelector,
     };
 

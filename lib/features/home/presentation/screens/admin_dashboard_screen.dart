@@ -6,6 +6,8 @@ import '../../../../core/services/storage/local_storage_service.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../owner/presentation/cubit/owner_statistics_cubit.dart';
 import '../../../owner/data/models/owner_statistics_model.dart';
+import '../../../manager_reports/presentation/cubit/manager_reports_cubit.dart';
+import '../../../manager_reports/data/models/manager_reports_model.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -18,7 +20,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<OwnerStatisticsCubit>().load();
+    final role = LocalStorageService.instance.getRole();
+    if (role == 'owner') {
+      context.read<OwnerStatisticsCubit>().load();
+    } else {
+      context.read<ManagerReportsCubit>().load();
+    }
   }
 
   @override
@@ -63,6 +70,22 @@ class _DashboardBody extends StatelessWidget {
                   return _OwnerStatsRow(statistics: state.statistics);
                 }
                 return const _OwnerStatsRow();
+              },
+            ),
+            const SizedBox(height: 28),
+          ] else ...[
+            const _SectionTitle('نظرة عامة على الشركة'),
+            const SizedBox(height: 14),
+            BlocBuilder<ManagerReportsCubit, ManagerReportsState>(
+              builder: (context, state) {
+                if (state is ManagerReportsLoading) {
+                  return const _LoadingStatsRow();
+                } else if (state is ManagerReportsError) {
+                  return _ErrorCard(message: state.message);
+                } else if (state is ManagerReportsLoaded) {
+                  return _ManagerStatsRow(reports: state.reports);
+                }
+                return const _LoadingStatsRow();
               },
             ),
             const SizedBox(height: 28),
@@ -168,18 +191,18 @@ class _WelcomeBanner extends StatelessWidget {
               },
             )
           else
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.admin_panel_settings_outlined,
-                color: Colors.white,
-                size: 40,
-              ),
+            BlocBuilder<ManagerReportsCubit, ManagerReportsState>(
+              builder: (context, state) {
+                final loaded = state is ManagerReportsLoaded ? state.reports : null;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _BannerStat(label: 'مركبة نشطة', value: loaded != null ? '${loaded.activeVehiclesCount}' : '--'),
+                    const SizedBox(width: 16),
+                    _BannerStat(label: 'سائق', value: loaded != null ? '${loaded.driversCount}' : '--'),
+                  ],
+                );
+              },
             ),
         ],
       ),
@@ -285,6 +308,72 @@ class _SectionTitle extends StatelessWidget {
       ),
     ],
   );
+}
+
+// ── Manager stats row ──────────────────────────────────────────────────────
+
+class _ManagerStatsRow extends StatelessWidget {
+  final ManagerReportsModel reports;
+  const _ManagerStatsRow({required this.reports});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            icon: Icons.directions_car_outlined,
+            label: 'المركبات',
+            value: '${reports.vehiclesCount}',
+            sub: '${reports.activeVehiclesCount} نشطة',
+            color: AppColors.primary,
+            trend: 'مباشر من الخادم',
+            trendUp: null,
+            onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.vehicles, (r) => false),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.people_outline,
+            label: 'السائقون',
+            value: '${reports.driversCount}',
+            sub: '${reports.managersCount} مدير فرعي',
+            color: const Color(0xFF7B1FA2),
+            trend: 'مباشر من الخادم',
+            trendUp: null,
+            onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.drivers, (r) => false),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.warning_amber_outlined,
+            label: 'أحداث SOS',
+            value: '${reports.sos.total}',
+            sub: 'ضمن كل الحالات',
+            color: AppColors.danger,
+            trend: 'مباشر من الخادم',
+            trendUp: null,
+            onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.sosEvents, (r) => false),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.bar_chart_outlined,
+            label: 'التقارير',
+            value: '${reports.attendanceCount}',
+            sub: 'سجل حضور',
+            color: AppColors.warning,
+            trend: 'مباشر من الخادم',
+            trendUp: null,
+            onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.reports, (r) => false),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ── Owner stats row ────────────────────────────────────────────────────────

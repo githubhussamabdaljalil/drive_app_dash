@@ -5,7 +5,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String roleSelector = '/role-selector';
   static const String login = '/login';
-  static const String verifyOtp = '/verify-otp';
   static const String verifyTotp = '/verify-totp';
   static const String changePassword = '/change-password';
   static const String forgotPassword = '/forgot-password';
@@ -24,14 +23,5 @@ class AppRoutes {
   static const String guestCodes = '/admin/guest-codes';
   static const String notifications = '/admin/notifications';
   static const String reports = '/admin/reports';
-
-  // ── Driver ──────────────────────────────────────────────────────────
-  static const String driverHome = '/driver/home';
-  static const String route = '/driver/route';
-  static const String attendance = '/driver/attendance';
-  static const String vehicleLinking = '/driver/vehicle-link';
-  static const String driverNotif = '/driver/notifications';
-  static const String driverHistory = '/driver/route-history';
-  static const String emergency = '/driver/sos';
-  static const String profile = '/driver/profile';
+  static const String profile = '/admin/profile';
 }

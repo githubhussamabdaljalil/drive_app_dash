@@ -9,8 +9,7 @@ import '../../../../core/widgets/dashboard/password_strength.dart';
 import '../../../../core/constants/app_routes.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  final bool isDriver;
-  const ChangePasswordScreen({super.key, this.isDriver = false});
+  const ChangePasswordScreen({super.key});
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -28,9 +27,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<AuthCubit>().changePassword(
-        _currentCtrl.text, _newCtrl.text,
-        isDriver: widget.isDriver);
+    context.read<AuthCubit>().changePassword(_currentCtrl.text, _newCtrl.text);
   }
 
   @override
@@ -44,8 +41,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
         if (state is PasswordChanged) {
-          final route = widget.isDriver ? AppRoutes.driverHome : AppRoutes.adminDashboard;
-          Navigator.pushReplacementNamed(ctx, route);
+          Navigator.pushReplacementNamed(ctx, AppRoutes.adminDashboard);
         }
       },
       builder: (ctx, state) {

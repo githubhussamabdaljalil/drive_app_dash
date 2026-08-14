@@ -5,11 +5,6 @@ abstract class AuthState {}
 class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 
-class RoleSelected extends AuthState {
-  final String role;
-  RoleSelected(this.role);
-}
-
 class AdminLoginSuccess extends AuthState {
   final String? challengeToken;
   final UserModel? user;
@@ -17,18 +12,7 @@ class AdminLoginSuccess extends AuthState {
   AdminLoginSuccess({this.challengeToken, this.user, this.token});
 }
 
-class DriverLoginSuccess extends AuthState {
-  final bool requiresOtp;
-  final String? phone;
-  final UserModel? user;
-  final String? token;
-  DriverLoginSuccess({this.requiresOtp = false, this.phone, this.user, this.token});
-}
-
-class MustChangePassword extends AuthState {
-  final bool isDriver;
-  MustChangePassword({this.isDriver = false});
-}
+class MustChangePassword extends AuthState {}
 
 class PasswordChanged extends AuthState {}
 

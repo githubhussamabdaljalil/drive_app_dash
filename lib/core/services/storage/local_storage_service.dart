@@ -17,7 +17,7 @@ class LocalStorageService {
   String? getToken() => _prefs?.getString('token');
   Future<void> clearToken() async => await _prefs!.remove('token');
 
-  // Role: 'owner' | 'manager' | 'driver'
+  // Role: 'owner' | 'manager'
   Future<void> saveRole(String role) async =>
       await _prefs!.setString('role', role);
   String? getRole() => _prefs?.getString('role');

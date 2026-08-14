@@ -9,64 +9,100 @@ class DriverCubit extends Cubit<DriverState> {
 
   DriverCubit() : super(DriverInitial());
 
-  Future<void> load() async {
+  // ============================================================
+  // LOAD
+  // ============================================================
+
+  Future<void> load({String? search, String? status}) async {
     if (isClosed) return;
     emit(DriverLoading());
     try {
-      final list = await _ds.getDrivers();
+      final list = await _ds.getDrivers(search: search, status: status);
       if (!isClosed) emit(DriverLoaded(list));
     } catch (e) {
       if (!isClosed) emit(DriverError(e.toString()));
     }
   }
 
-  Future<void> create(Map<String, dynamic> body) async {
-    if (isClosed) return;
+  // ============================================================
+  // CREATE
+  // ============================================================
+  //
+  // Returns the one-time temporary_password on success (null on
+  // failure) so the UI can show it to the manager once.
+
+  Future<String?> create(Map<String, dynamic> body) async {
+    if (isClosed) return null;
     final current = _currentList;
     emit(DriverSubmitting(current));
     try {
-      final driver = await _ds.createDriver(body);
-      if (!isClosed) emit(DriverLoaded([...current, driver]));
+      final res = await _ds.createDriver(body);
+      final tempPassword = res['temporary_password']?.toString();
+      final list = await _ds.getDrivers();
+      if (!isClosed) emit(DriverLoaded(list));
+      return tempPassword ?? '';
     } catch (e) {
       if (!isClosed) emit(DriverError(e.toString(), current));
+      return null;
     }
   }
 
-  Future<void> update(int id, Map<String, dynamic> body) async {
-    if (isClosed) return;
+  // ============================================================
+  // UPDATE
+  // ============================================================
+
+  Future<bool> update(int id, Map<String, dynamic> body) async {
+    if (isClosed) return false;
     final current = _currentList;
     emit(DriverSubmitting(current));
     try {
-      final updated = await _ds.updateDriver(id, body);
-      if (!isClosed) emit(DriverLoaded(current.map((d) => d.id == id ? updated : d).toList()));
+      await _ds.updateDriver(id, body);
+      final list = await _ds.getDrivers();
+      if (!isClosed) emit(DriverLoaded(list));
+      return true;
     } catch (e) {
       if (!isClosed) emit(DriverError(e.toString(), current));
+      return false;
     }
   }
 
-  Future<void> toggleStatus(DriverModel driver) async {
-    if (isClosed) return;
-    final current = _currentList;
-    emit(DriverSubmitting(current));
-    try {
-      final updated = driver.isActive
-          ? await _ds.deactivateDriver(driver.id)
-          : await _ds.activateDriver(driver.id);
-      if (!isClosed) emit(DriverLoaded(current.map((d) => d.id == driver.id ? updated : d).toList()));
-    } catch (e) {
-      if (!isClosed) emit(DriverError(e.toString(), current));
-    }
-  }
+  // ============================================================
+  // DELETE
+  // ============================================================
 
-  Future<void> delete(int id) async {
-    if (isClosed) return;
+  Future<bool> delete(int id) async {
+    if (isClosed) return false;
     final current = _currentList;
     emit(DriverSubmitting(current));
     try {
       await _ds.deleteDriver(id);
-      if (!isClosed) emit(DriverLoaded(current.where((d) => d.id != id).toList()));
+      final list = await _ds.getDrivers();
+      if (!isClosed) emit(DriverLoaded(list));
+      return true;
     } catch (e) {
       if (!isClosed) emit(DriverError(e.toString(), current));
+      return false;
+    }
+  }
+
+  // ============================================================
+  // RESET PASSWORD
+  // ============================================================
+  //
+  // Returns the new one-time temporary_password on success.
+
+  Future<String?> resetPassword(int id) async {
+    if (isClosed) return null;
+    final current = _currentList;
+    emit(DriverSubmitting(current));
+    try {
+      final res = await _ds.resetPassword(id);
+      final tempPassword = res['temporary_password']?.toString() ?? '';
+      if (!isClosed) emit(DriverLoaded(current));
+      return tempPassword;
+    } catch (e) {
+      if (!isClosed) emit(DriverError(e.toString(), current));
+      return null;
     }
   }
 

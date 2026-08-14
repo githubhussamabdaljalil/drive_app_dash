@@ -4,7 +4,8 @@ import '../../constants/app_routes.dart';
 import '../../services/storage/local_storage_service.dart';
 
 /// DashboardLayout — persistent sidebar + content area
-/// Used by ALL post-login screens (owner, manager, driver)
+/// Used by all post-login admin screens (owner, manager).
+/// Driver/guest have their own separate mobile app and don't use this.
 class DashboardLayout extends StatelessWidget {
   final Widget body;
   final String activeRoute;
@@ -19,7 +20,7 @@ class DashboardLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final role = LocalStorageService.instance.getRole() ?? 'driver';
+    final role = LocalStorageService.instance.getRole() ?? 'manager';
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Row(children: [
@@ -110,9 +111,8 @@ class _Sidebar extends StatelessWidget {
   }
 
   String _roleLabel(String r) => switch (r) {
-    'owner'   => 'المالك',
-    'manager' => 'المدير',
-    _         => 'السائق',
+    'owner' => 'المالك',
+    _       => 'المدير',
   };
 
   List<Widget> _navItems(String role, BuildContext ctx, String active) {
@@ -123,8 +123,10 @@ class _Sidebar extends StatelessWidget {
         _NavDef(Icons.dashboard_outlined, 'لوحة التحكم', AppRoutes.adminDashboard),
         _NavDef(Icons.business_outlined, 'الشركات', AppRoutes.companies),
         _NavDef(Icons.bar_chart_outlined, 'التقارير', AppRoutes.reports),
+        _NavDef(Icons.person_outline, 'الملف الشخصي', AppRoutes.profile),
       ]);
-    } else if (role == 'manager') {
+    } else {
+      // manager
       items.addAll([
         _NavDef(Icons.dashboard_outlined, 'لوحة التحكم', AppRoutes.adminDashboard),
         _NavDef(Icons.directions_car_outlined, 'المركبات', AppRoutes.vehicles),
@@ -138,22 +140,11 @@ class _Sidebar extends StatelessWidget {
         _NavDef(Icons.card_giftcard_outlined, 'رموز الضيوف', AppRoutes.guestCodes),
         _NavDef(Icons.notifications_outlined, 'الإشعارات', AppRoutes.notifications),
         _NavDef(Icons.bar_chart_outlined, 'التقارير', AppRoutes.reports),
-      ]);
-    } else {
-      // driver
-      items.addAll([
-        _NavDef(Icons.home_outlined, 'الرئيسية', AppRoutes.driverHome),
-        _NavDef(Icons.navigation_outlined, 'وجهاتي', AppRoutes.route),
-        _NavDef(Icons.access_time_outlined, 'الحضور', AppRoutes.attendance),
-        _NavDef(Icons.qr_code_scanner_outlined, 'ربط مركبة', AppRoutes.vehicleLinking),
-        _NavDef(Icons.notifications_outlined, 'الإشعارات', AppRoutes.notifications),
-        _NavDef(Icons.history_outlined, 'سجل المسارات', AppRoutes.routeHistory),
-        _NavDef(Icons.warning_amber_outlined, 'طوارئ SOS', AppRoutes.emergency),
         _NavDef(Icons.person_outline, 'الملف الشخصي', AppRoutes.profile),
       ]);
     }
 
-    final sectionLabel = role == 'driver' ? null : _sectionFor(role);
+    final sectionLabel = _sectionFor(role);
 
     return [
       if (sectionLabel != null) _SectionLabel(sectionLabel),

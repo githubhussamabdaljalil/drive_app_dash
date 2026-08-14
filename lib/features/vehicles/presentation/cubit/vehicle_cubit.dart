@@ -9,64 +9,75 @@ class VehicleCubit extends Cubit<VehicleState> {
 
   VehicleCubit() : super(VehicleInitial());
 
-  Future<void> load() async {
+  // ============================================================
+  // LOAD
+  // ============================================================
+
+  Future<void> load({String? search, String? status}) async {
     if (isClosed) return;
     emit(VehicleLoading());
     try {
-      final list = await _ds.getVehicles();
+      final list = await _ds.getVehicles(search: search, status: status);
       if (!isClosed) emit(VehicleLoaded(list));
     } catch (e) {
       if (!isClosed) emit(VehicleError(e.toString()));
     }
   }
 
-  Future<void> create(Map<String, dynamic> body) async {
-    if (isClosed) return;
+  // ============================================================
+  // CREATE
+  // ============================================================
+
+  Future<bool> create(Map<String, dynamic> body) async {
+    if (isClosed) return false;
     final current = _currentList;
     emit(VehicleSubmitting(current));
     try {
-      final vehicle = await _ds.createVehicle(body);
-      if (!isClosed) emit(VehicleLoaded([...current, vehicle]));
+      await _ds.createVehicle(body);
+      final list = await _ds.getVehicles();
+      if (!isClosed) emit(VehicleLoaded(list));
+      return true;
     } catch (e) {
       if (!isClosed) emit(VehicleError(e.toString(), current));
+      return false;
     }
   }
 
-  Future<void> update(int id, Map<String, dynamic> body) async {
-    if (isClosed) return;
+  // ============================================================
+  // UPDATE
+  // ============================================================
+
+  Future<bool> update(int id, Map<String, dynamic> body) async {
+    if (isClosed) return false;
     final current = _currentList;
     emit(VehicleSubmitting(current));
     try {
-      final updated = await _ds.updateVehicle(id, body);
-      if (!isClosed) emit(VehicleLoaded(current.map((v) => v.id == id ? updated : v).toList()));
+      await _ds.updateVehicle(id, body);
+      final list = await _ds.getVehicles();
+      if (!isClosed) emit(VehicleLoaded(list));
+      return true;
     } catch (e) {
       if (!isClosed) emit(VehicleError(e.toString(), current));
+      return false;
     }
   }
 
-  Future<void> toggleStatus(VehicleModel vehicle) async {
-    if (isClosed) return;
-    final current = _currentList;
-    emit(VehicleSubmitting(current));
-    try {
-      final updated = vehicle.isActive
-          ? await _ds.deactivateVehicle(vehicle.id)
-          : await _ds.activateVehicle(vehicle.id);
-      if (!isClosed) emit(VehicleLoaded(current.map((v) => v.id == vehicle.id ? updated : v).toList()));
-    } catch (e) {
-      if (!isClosed) emit(VehicleError(e.toString(), current));
-    }
-  }
+  // ============================================================
+  // DELETE
+  // ============================================================
 
-  Future<void> delete(int id) async {
-    if (isClosed) return;
+  Future<bool> delete(int id) async {
+    if (isClosed) return false;
     final current = _currentList;
     emit(VehicleSubmitting(current));
     try {
       await _ds.deleteVehicle(id);
-      if (!isClosed) emit(VehicleLoaded(current.where((v) => v.id != id).toList()));
+      final list = await _ds.getVehicles();
+      if (!isClosed) emit(VehicleLoaded(list));
+      return true;
     } catch (e) {
       if (!isClosed) emit(VehicleError(e.toString(), current));
+      return false;
     }
   }
 

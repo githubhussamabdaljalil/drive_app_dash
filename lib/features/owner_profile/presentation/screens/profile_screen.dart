@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/dashboard_layout.dart';
+import '../../../../core/constants/app_routes.dart';
 
 
 
@@ -14,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardLayout(
-      activeRoute: '/driver/profile',
+      activeRoute: AppRoutes.profile,
       pageTitle: 'الملف الشخصي',
 
       body: BlocProvider(

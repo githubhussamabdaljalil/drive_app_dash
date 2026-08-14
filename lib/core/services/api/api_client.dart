@@ -42,16 +42,14 @@ class ApiClient {
   }
 
   // ===========================================================================
-  // PARSE RESPONSE
+  // PARSE JSON RESPONSE
   // ===========================================================================
 
   Map<String, dynamic> _parse(http.Response res) {
     // -------------------------------------------------------------------------
     // 204 No Content
     // -------------------------------------------------------------------------
-    //
-    // DELETE غالباً يرجع 204 بدون body.
-    //
+
     if (res.statusCode == 204 || res.body.trim().isEmpty) {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return {};
@@ -64,7 +62,7 @@ class ApiClient {
     }
 
     // -------------------------------------------------------------------------
-    // محاولة قراءة JSON
+    // JSON
     // -------------------------------------------------------------------------
 
     Map<String, dynamic> body;
@@ -78,7 +76,6 @@ class ApiClient {
         body = {};
       }
     } catch (_) {
-      // إذا السيرفر رجع نص عادي وليس JSON
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return {};
       }
@@ -174,6 +171,62 @@ class ApiClient {
     );
 
     return _parse(res);
+  }
+
+  // ===========================================================================
+  // GET BYTES
+  // ===========================================================================
+  //
+  // Used when API returns a file such as PDF / Excel instead of JSON.
+  //
+  Future<http.Response> getBytes(
+    String path, {
+    bool auth = true,
+  }) async {
+    final res = await http.get(
+      _uri(path),
+      headers: _headers(auth: auth),
+    );
+
+    // -------------------------------------------------------------------------
+    // SUCCESS
+    // -------------------------------------------------------------------------
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return res;
+    }
+
+    // -------------------------------------------------------------------------
+    // ERROR
+    // -------------------------------------------------------------------------
+
+    try {
+      final decoded = jsonDecode(res.body);
+
+      if (decoded is Map<String, dynamic>) {
+        final msg =
+            decoded['message'] ??
+            decoded['error'] ??
+            (decoded['errors'] is Map
+                ? (decoded['errors'] as Map).values.first.toString()
+                : null) ??
+            'خطأ ${res.statusCode}';
+
+        throw ApiException(
+          msg.toString(),
+          res.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+    }
+
+    throw ApiException(
+      'فشل تحميل الملف',
+      res.statusCode,
+    );
   }
 }
 

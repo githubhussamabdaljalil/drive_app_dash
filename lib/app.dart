@@ -1,3 +1,4 @@
+import 'package:driver_app_dash/features/owner/presentation/cubit/owner_reports_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/constants/app_routes.dart';
@@ -6,8 +7,7 @@ import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/companies/presentation/cubit/company_cubit.dart';
 import 'features/drivers/presentation/cubit/driver_cubit.dart';
 import 'features/vehicles/presentation/cubit/vehicle_cubit.dart';
-import 'features/owner/presentation/cubit/owner_statistics_cubit.dart';
-import 'features/owner/presentation/cubit/owner_reports_cubit.dart';
+
 import 'features/destinations/presentation/cubit/destination_cubit.dart';
 import 'features/sos/presentation/cubit/sos_cubit.dart';
 import 'features/qr_codes/presentation/cubit/qr_code_cubit.dart';
@@ -54,7 +54,7 @@ class VTFMSApp extends StatelessWidget {
         BlocProvider(create: (_) => CompanyCubit(), lazy: true),
         BlocProvider(create: (_) => DriverCubit(), lazy: true),
         BlocProvider(create: (_) => VehicleCubit(), lazy: true),
-        BlocProvider(create: (_) => OwnerStatisticsCubit(), lazy: true),
+    
         BlocProvider(create: (_) => OwnerReportsCubit(), lazy: true),
         BlocProvider(create: (_) => DestinationCubit(), lazy: true),
         BlocProvider(create: (_) => SosCubit(), lazy: true),

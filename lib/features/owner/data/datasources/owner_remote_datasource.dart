@@ -1,91 +1,94 @@
-import '../../../../core/services/api/api_client.dart';
-import '../models/owner_statistics_model.dart';
+import 'package:driver_app_dash/features/owner/data/models/owner_reports_model.dart';
+import 'package:http/http.dart' as http;
 
-class OwnerRemoteDataSource {
+import '../../../../core/services/api/api_client.dart';
+
+
+class OwnerReportsRemoteDataSource {
   final ApiClient _api = ApiClient.instance;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // Statistics API
-  // ══════════════════════════════════════════════════════════════════════════
+  // ===========================================================================
+  // GET REPORTS
+  // ===========================================================================
 
-  /// GET /admin/owner/statistics
-  /// Returns platform-level statistics for Owner
-  Future<OwnerStatisticsModel> getStatistics() async {
-    final res = await _api.get('/admin/owner/statistics');
-    return OwnerStatisticsModel.fromJson(res['data'] ?? res);
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // Companies API (Already exists in CompanyRemoteDataSource)
-  // ══════════════════════════════════════════════════════════════════════════
-  // Note: Company CRUD operations are handled by CompanyRemoteDataSource
-  // located in lib/features/companies/data/datasources/
-
-  /// GET /admin/owner/companies/{id}
-  /// Returns detailed information about a specific company
-  Future<Map<String, dynamic>> getCompanyDetails(int id) async {
-    final res = await _api.get('/admin/owner/companies/$id');
-    return res['data'] ?? res;
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // Reports API
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /// GET /admin/owner/reports
-  /// Returns platform-wide reports with optional filters
-  ///
-  /// Parameters:
-  /// - [companyId]: Optional company filter
-  /// - [dateFrom]: Optional start date (YYYY-MM-DD)
-  /// - [dateTo]: Optional end date (YYYY-MM-DD)
-  Future<Map<String, dynamic>> getReports({
+  Future<List<OwnerReportModel>> getReports({
     int? companyId,
     String? dateFrom,
     String? dateTo,
   }) async {
     final params = <String, String>{};
-    if (companyId != null) params['company_id'] = companyId.toString();
-    if (dateFrom != null) params['date_from'] = dateFrom;
-    if (dateTo != null) params['date_to'] = dateTo;
 
-    final query = params.isEmpty
-        ? ''
-        : '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    if (companyId != null) {
+      params['company_id'] = companyId.toString();
+    }
 
-    final res = await _api.get('/admin/owner/reports$query');
-    return res['data'] ?? res;
+    if (dateFrom != null && dateFrom.isNotEmpty) {
+      params['date_from'] = dateFrom;
+    }
+
+    if (dateTo != null && dateTo.isNotEmpty) {
+      params['date_to'] = dateTo;
+    }
+
+    final query = Uri(queryParameters: params).query;
+
+    final path = query.isEmpty
+        ? '/admin/owner/reports'
+        : '/admin/owner/reports?$query';
+
+    final response = await _api.get(path);
+
+    // API:
+    // {
+    //   "data": [...],
+    //   "meta": {...}
+    // }
+
+    final data = response['data'];
+
+    if (data is! List) {
+      throw Exception('بيانات التقارير غير صالحة');
+    }
+
+    return data
+        .map(
+          (item) => OwnerReportModel.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList();
   }
 
-  /// GET /admin/owner/reports/export
-  /// Exports reports as PDF or Excel file
-  ///
-  /// Parameters:
-  /// - [format]: Required - 'pdf' or 'excel'
-  /// - [companyId]: Optional company filter
-  /// - [dateFrom]: Optional start date (YYYY-MM-DD)
-  /// - [dateTo]: Optional end date (YYYY-MM-DD)
-  ///
-  /// Returns: Raw bytes of the file
-  Future<List<int>> exportReport({
+  // ===========================================================================
+  // EXPORT REPORT
+  // ===========================================================================
+
+  Future<http.Response> exportReports({
     required String format,
     int? companyId,
     String? dateFrom,
     String? dateTo,
   }) async {
-    final params = <String, String>{'format': format};
-    if (companyId != null) params['company_id'] = companyId.toString();
-    if (dateFrom != null) params['date_from'] = dateFrom;
-    if (dateTo != null) params['date_to'] = dateTo;
+    final params = <String, String>{
+      'format': format,
+    };
 
-    final query =
-        '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    if (companyId != null) {
+      params['company_id'] = companyId.toString();
+    }
 
-    // This endpoint returns a file, not JSON
-    // TODO: Implement binary file download in ApiClient
-    throw UnimplementedError(
-      'File download not yet implemented in ApiClient. '
-      'Endpoint: GET /admin/owner/reports/export$query',
+    if (dateFrom != null && dateFrom.isNotEmpty) {
+      params['date_from'] = dateFrom;
+    }
+
+    if (dateTo != null && dateTo.isNotEmpty) {
+      params['date_to'] = dateTo;
+    }
+
+    final query = Uri(queryParameters: params).query;
+
+    return _api.getBytes(
+      '/admin/owner/reports/export?$query',
     );
   }
 }

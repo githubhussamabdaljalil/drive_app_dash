@@ -1,6 +1,14 @@
+import 'package:driver_app_dash/core/utils/file_download_helper.dart';
+import 'package:driver_app_dash/features/owner/data/models/owner_reports_model.dart';
+import 'package:driver_app_dash/features/owner/presentation/cubit/owner_reports_cubit.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/dashboard/dashboard_layout.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/dashboard/dashboard_layout.dart';
+
+import '../../../owner/presentation/cubit/owner_reports_state.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -8,353 +16,279 @@ class ReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardLayout(
-      activeRoute: '/admin/reports',
+      activeRoute: AppRoutes.reports,
       pageTitle: 'التقارير',
-      body: const _ReportsBody(),
+      body: const _OwnerReportsBody(),
     );
   }
 }
 
-class _ReportsBody extends StatefulWidget {
-  const _ReportsBody();
+class _OwnerReportsBody extends StatefulWidget {
+  const _OwnerReportsBody();
 
   @override
-  State<_ReportsBody> createState() => _ReportsBodyState();
+  State<_OwnerReportsBody> createState() => _OwnerReportsBodyState();
 }
 
-class _ReportsBodyState extends State<_ReportsBody> {
-  String _selectedPeriod = 'month'; // day, week, month, year, custom
+class _OwnerReportsBodyState extends State<_OwnerReportsBody> {
+  int? _selectedCompanyId;
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<OwnerReportsCubit>().loadReports();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header with filters ─────────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'تقارير المنصة',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'نظرة شاملة على أداء المنصة والإحصائيات',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              // Period selector
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    _PeriodBtn(
-                      label: 'يوم',
-                      value: 'day',
-                      selected: _selectedPeriod,
-                      onTap: (v) => setState(() => _selectedPeriod = v),
-                    ),
-                    _PeriodBtn(
-                      label: 'أسبوع',
-                      value: 'week',
-                      selected: _selectedPeriod,
-                      onTap: (v) => setState(() => _selectedPeriod = v),
-                    ),
-                    _PeriodBtn(
-                      label: 'شهر',
-                      value: 'month',
-                      selected: _selectedPeriod,
-                      onTap: (v) => setState(() => _selectedPeriod = v),
-                    ),
-                    _PeriodBtn(
-                      label: 'سنة',
-                      value: 'year',
-                      selected: _selectedPeriod,
-                      onTap: (v) => setState(() => _selectedPeriod = v),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Export button
-              _IconBtn(
-                icon: Icons.download_outlined,
-                label: 'تصدير PDF',
-                color: AppColors.primary,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('سيتم إضافة ميزة التصدير قريباً'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
+    return BlocListener<OwnerReportsCubit, OwnerReportsState>(
+      listener: (context, state) {
+        // ================================================================
+        // PDF EXPORT SUCCESS
+        // ================================================================
+        if (state is OwnerReportsExported) {
+          final date = _fileDate();
 
-          // ── Overview Stats ──────────────────────────────────────────
-          const _SectionTitle('نظرة عامة'),
-          const SizedBox(height: 14),
-          const _OverviewStatsRow(),
-          const SizedBox(height: 28),
+          FileDownloadHelper.downloadPdf(
+            state.bytes,
+            fileName: 'owner_reports_$date.pdf',
+          );
 
-          // ── Charts Row ──────────────────────────────────────────────
-          const _SectionTitle('الرسوم البيانية'),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _ChartCard(
-                  title: 'نمو الشركات',
-                  subtitle: 'عدد الشركات المسجلة خلال ${_periodLabel()}',
-                  icon: Icons.trending_up,
-                  color: AppColors.primary,
-                  chart: _LineChartWidget(),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _ChartCard(
-                  title: 'توزيع المركبات',
-                  subtitle: 'حسب الحالة',
-                  icon: Icons.pie_chart_outline,
-                  color: const Color(0xFF7B1FA2),
-                  chart: _PieChartWidget(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم تصدير التقرير بنجاح')),
+          );
+        }
 
-          // ── Tables ──────────────────────────────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    const _SectionTitle('أفضل الشركات أداءً'),
-                    const SizedBox(height: 14),
-                    _TopCompaniesTable(),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  children: [
-                    const _SectionTitle('أفضل السائقين'),
-                    const SizedBox(height: 14),
-                    _TopDriversTable(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
+        // ================================================================
+        // EXPORT ERROR
+        // ================================================================
+        if (state is OwnerReportsFailure) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      child: BlocBuilder<OwnerReportsCubit, OwnerReportsState>(
+        builder: (context, state) {
+          final reports = _getReports(state);
 
-          // ── Recent Activities ───────────────────────────────────────
-          const _SectionTitle('النشاطات الأخيرة'),
-          const SizedBox(height: 14),
-          _RecentActivitiesTable(),
-        ],
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Header(
+                  onExport: () => _exportPdf(context),
+                  exporting: state is OwnerReportsExporting,
+                ),
+
+                const SizedBox(height: 20),
+
+                _FilterBar(
+                  reports: reports,
+                  selectedCompanyId: _selectedCompanyId,
+                  dateFrom: _dateFrom,
+                  dateTo: _dateTo,
+                  onCompanyChanged: (value) {
+                    setState(() {
+                      _selectedCompanyId = value;
+                    });
+
+                    context.read<OwnerReportsCubit>().loadReports(
+                      companyId: value,
+                      dateFrom: _formatDate(_dateFrom),
+                      dateTo: _formatDate(_dateTo),
+                    );
+                  },
+                  onDateFromChanged: (date) {
+                    setState(() {
+                      _dateFrom = date;
+                    });
+
+                    _reload();
+                  },
+                  onDateToChanged: (date) {
+                    setState(() {
+                      _dateTo = date;
+                    });
+
+                    _reload();
+                  },
+                  onClear: () {
+                    setState(() {
+                      _selectedCompanyId = null;
+                      _dateFrom = null;
+                      _dateTo = null;
+                    });
+
+                    context.read<OwnerReportsCubit>().clearFilters();
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                if (state is OwnerReportsLoading) const _LoadingBlock(),
+
+                if (state is OwnerReportsFailure)
+                  _ErrorBlock(message: state.message, onRetry: _reload),
+
+                if (state is OwnerReportsLoaded)
+                  _ReportsContent(reports: state.reports),
+
+                if (state is OwnerReportsExporting)
+                  const _LoadingBlock(message: 'جاري تجهيز التقرير...'),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  String _periodLabel() => switch (_selectedPeriod) {
-    'day' => 'اليوم',
-    'week' => 'الأسبوع',
-    'month' => 'الشهر',
-    'year' => 'السنة',
-    _ => 'الفترة المحددة',
-  };
-}
+  // =========================================================================
+  // GET CURRENT REPORTS
+  // =========================================================================
 
-// ── Period Button ──────────────────────────────────────────────────────────
+  List<OwnerReportModel> _getReports(OwnerReportsState state) {
+    if (state is OwnerReportsLoaded) {
+      return state.reports;
+    }
 
-class _PeriodBtn extends StatelessWidget {
-  final String label;
-  final String value;
-  final String selected;
-  final void Function(String) onTap;
+    if (state is OwnerReportsLoading) {
+      return state.previousReports;
+    }
 
-  const _PeriodBtn({
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
+    if (state is OwnerReportsFailure) {
+      return state.previousReports;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = value == selected;
-    return GestureDetector(
-      onTap: () => onTap(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
+    if (state is OwnerReportsExporting) {
+      return state.reports;
+    }
+
+    if (state is OwnerReportsExported) {
+      return state.reports;
+    }
+
+    return context.read<OwnerReportsCubit>().currentReports;
+  }
+
+  // =========================================================================
+  // RELOAD
+  // =========================================================================
+
+  void _reload() {
+    context.read<OwnerReportsCubit>().loadReports(
+      companyId: _selectedCompanyId,
+      dateFrom: _formatDate(_dateFrom),
+      dateTo: _formatDate(_dateTo),
     );
+  }
+
+  // =========================================================================
+  // EXPORT PDF
+  // =========================================================================
+
+  void _exportPdf(BuildContext context) {
+    context.read<OwnerReportsCubit>().exportReports(
+      format: 'pdf',
+      companyId: _selectedCompanyId,
+      dateFrom: _formatDate(_dateFrom),
+      dateTo: _formatDate(_dateTo),
+    );
+  }
+
+  // =========================================================================
+  // FORMAT API DATE
+  // =========================================================================
+
+  String? _formatDate(DateTime? date) {
+    if (date == null) return null;
+
+    return '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+  }
+
+  // =========================================================================
+  // FILE DATE
+  // =========================================================================
+
+  String _fileDate() {
+    final now = DateTime.now();
+
+    return '${now.year}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
   }
 }
 
-class _IconBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+// ============================================================================
+// HEADER
+// ============================================================================
 
-  const _IconBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+class _Header extends StatelessWidget {
+  final VoidCallback onExport;
+  final bool exporting;
 
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 40,
-    child: ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 0,
-        minimumSize: const Size(120, 40),
-      ),
-    ),
-  );
-}
-
-// ── Section Title ──────────────────────────────────────────────────────────
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  const _SectionTitle(this.title);
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        width: 3,
-        height: 18,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-      ),
-    ],
-  );
-}
-
-// ── Overview Stats ─────────────────────────────────────────────────────────
-
-class _OverviewStatsRow extends StatelessWidget {
-  const _OverviewStatsRow();
+  const _Header({required this.onExport, required this.exporting});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.business_outlined,
-            label: 'إجمالي الشركات',
-            value: '14',
-            change: '+2',
-            changePercent: '+16.7%',
-            isPositive: true,
-            color: AppColors.primary,
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'تقارير المنصة',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: 3),
+              Text(
+                'نظرة شاملة على أداء الشركات والمركبات والسائقين',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.directions_car_outlined,
-            label: 'إجمالي المركبات',
-            value: '87',
-            change: '+5',
-            changePercent: '+6.1%',
-            isPositive: true,
-            color: const Color(0xFF7B1FA2),
+
+        ElevatedButton.icon(
+          onPressed: exporting ? null : onExport,
+          icon: exporting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.picture_as_pdf_outlined, size: 17),
+          label: Text(
+            exporting ? 'جاري التصدير...' : 'تصدير PDF',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.people_outline,
-            label: 'إجمالي السائقين',
-            value: '143',
-            change: '+11',
-            changePercent: '+8.3%',
-            isPositive: true,
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.navigation_outlined,
-            label: 'الرحلات المكتملة',
-            value: '2,847',
-            change: '+127',
-            changePercent: '+4.7%',
-            isPositive: true,
-            color: AppColors.warning,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.primary.withOpacity(.6),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            minimumSize: const Size(125, 42),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ],
@@ -362,133 +296,310 @@ class _OverviewStatsRow extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final String change;
-  final String changePercent;
-  final bool isPositive;
-  final Color color;
+// ============================================================================
+// FILTER BAR
+// ============================================================================
 
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.change,
-    required this.changePercent,
-    required this.isPositive,
-    required this.color,
+class _FilterBar extends StatelessWidget {
+  final List<OwnerReportModel> reports;
+
+  final int? selectedCompanyId;
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
+
+  final ValueChanged<int?> onCompanyChanged;
+  final ValueChanged<DateTime?> onDateFromChanged;
+  final ValueChanged<DateTime?> onDateToChanged;
+
+  final VoidCallback onClear;
+
+  const _FilterBar({
+    required this.reports,
+    required this.selectedCompanyId,
+    required this.dateFrom,
+    required this.dateTo,
+    required this.onCompanyChanged,
+    required this.onDateFromChanged,
+    required this.onDateToChanged,
+    required this.onClear,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasFilters =
+        selectedCompanyId != null || dateFrom != null || dateTo != null;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+          // ================================================================
+          // COMPANY
+          // ================================================================
+          Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: selectedCompanyId,
+                hint: const Text('كل الشركات', style: TextStyle(fontSize: 12)),
+                isDense: true,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textPrimary,
                 ),
-                child: Icon(icon, color: color, size: 19),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('كل الشركات'),
+                  ),
+                  ...reports
+                      .map(
+                        (report) => DropdownMenuItem<int?>(
+                          value: report.companyId,
+                          child: Text(report.companyName),
+                        ),
+                      )
+                      .toList(),
+                ],
+                onChanged: onCompanyChanged,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isPositive
-                      ? AppColors.successSurface
-                      : AppColors.dangerSurface,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isPositive ? Icons.trending_up : Icons.trending_down,
-                      size: 11,
-                      color: isPositive ? AppColors.success : AppColors.danger,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      changePercent,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: isPositive
-                            ? AppColors.success
-                            : AppColors.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: color,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
+
+          // ================================================================
+          // DATE FROM
+          // ================================================================
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: dateFrom ?? DateTime.now(),
+                firstDate: DateTime(DateTime.now().year - 3),
+                lastDate: DateTime.now(),
+              );
+
+              if (picked != null) {
+                onDateFromChanged(picked);
+              }
+            },
+            icon: const Icon(Icons.calendar_today_outlined, size: 16),
+            label: Text(
+              dateFrom == null ? 'من تاريخ' : _displayDate(dateFrom!),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '$change هذا الشهر',
-            style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+
+          // ================================================================
+          // DATE TO
+          // ================================================================
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: dateTo ?? DateTime.now(),
+                firstDate: DateTime(DateTime.now().year - 3),
+                lastDate: DateTime.now(),
+              );
+
+              if (picked != null) {
+                onDateToChanged(picked);
+              }
+            },
+            icon: const Icon(Icons.calendar_today_outlined, size: 16),
+            label: Text(
+              dateTo == null ? 'إلى تاريخ' : _displayDate(dateTo!),
+              style: const TextStyle(fontSize: 12),
+            ),
           ),
+
+          // ================================================================
+          // CLEAR
+          // ================================================================
+          if (hasFilters)
+            TextButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.close, size: 15),
+              label: const Text('مسح الفلاتر', style: TextStyle(fontSize: 12)),
+            ),
         ],
       ),
     );
   }
+
+  static String _displayDate(DateTime date) {
+    return '${date.year}/${date.month}/${date.day}';
+  }
 }
 
-// ── Chart Card ─────────────────────────────────────────────────────────────
+// ============================================================================
+// REPORTS CONTENT
+// ============================================================================
 
-class _ChartCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final Widget chart;
+class _ReportsContent extends StatelessWidget {
+  final List<OwnerReportModel> reports;
 
-  const _ChartCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.chart,
-  });
+  const _ReportsContent({required this.reports});
+
+  @override
+  Widget build(BuildContext context) {
+    if (reports.isEmpty) {
+      return const _EmptyBlock();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _PlatformOverview(reports: reports),
+
+        const SizedBox(height: 24),
+
+        const Text(
+          'تقارير الشركات',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        ...reports.map(
+          (report) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _CompanyReportCard(report: report),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// PLATFORM OVERVIEW
+// ============================================================================
+
+class _PlatformOverview extends StatelessWidget {
+  final List<OwnerReportModel> reports;
+
+  const _PlatformOverview({required this.reports});
+
+  @override
+  Widget build(BuildContext context) {
+    int vehicles = 0;
+    int activeVehicles = 0;
+    int managers = 0;
+    int drivers = 0;
+    int attendance = 0;
+    int guestCodes = 0;
+
+    int sosTotal = 0;
+    int destinationsTotal = 0;
+
+    for (final report in reports) {
+      vehicles += report.vehiclesCount;
+      activeVehicles += report.activeVehiclesCount;
+      managers += report.managersCount;
+      drivers += report.driversCount;
+      attendance += report.attendanceCount;
+      guestCodes += report.guestCodesIssuedCount;
+
+      sosTotal += report.sos.total;
+      destinationsTotal += report.destinations.total;
+    }
+
+    return Wrap(
+      spacing: 14,
+      runSpacing: 14,
+      children: [
+        _StatCard(
+          icon: Icons.business_outlined,
+          label: 'الشركات',
+          value: reports.length.toString(),
+          color: AppColors.primary,
+        ),
+
+        _StatCard(
+          icon: Icons.directions_car_outlined,
+          label: 'إجمالي المركبات',
+          value: vehicles.toString(),
+          color: AppColors.primary,
+        ),
+
+        _StatCard(
+          icon: Icons.check_circle_outline,
+          label: 'المركبات النشطة',
+          value: activeVehicles.toString(),
+          color: AppColors.success,
+        ),
+
+        _StatCard(
+          icon: Icons.people_outline,
+          label: 'السائقون',
+          value: drivers.toString(),
+          color: const Color(0xFF7B1FA2),
+        ),
+
+        _StatCard(
+          icon: Icons.groups_outlined,
+          label: 'المدراء',
+          value: managers.toString(),
+          color: AppColors.warning,
+        ),
+
+        _StatCard(
+          icon: Icons.access_time_outlined,
+          label: 'سجلات الحضور',
+          value: attendance.toString(),
+          color: AppColors.primary,
+        ),
+
+        _StatCard(
+          icon: Icons.card_giftcard_outlined,
+          label: 'رموز الضيوف',
+          value: guestCodes.toString(),
+          color: const Color(0xFF7B1FA2),
+        ),
+
+        _StatCard(
+          icon: Icons.warning_amber_outlined,
+          label: 'أحداث SOS',
+          value: sosTotal.toString(),
+          color: AppColors.danger,
+        ),
+
+        _StatCard(
+          icon: Icons.navigation_outlined,
+          label: 'الوجهات',
+          value: destinationsTotal.toString(),
+          color: AppColors.primary,
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// COMPANY CARD
+// ============================================================================
+
+class _CompanyReportCard extends StatelessWidget {
+  final OwnerReportModel report;
+
+  const _CompanyReportCard({required this.report});
 
   @override
   Widget build(BuildContext context) {
@@ -498,43 +609,48 @@ class _ChartCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ================================================================
+          // COMPANY HEADER
+          // ================================================================
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(9),
+                  color: AppColors.primary.withOpacity(.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: const Icon(
+                  Icons.business_outlined,
+                  color: AppColors.primary,
+                  size: 21,
+                ),
               ),
-              const SizedBox(width: 10),
+
+              const SizedBox(width: 12),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      report.companyName,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
+
+                    const SizedBox(height: 3),
+
                     Text(
-                      subtitle,
+                      'معرّف الشركة: ${report.companyId}',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -543,591 +659,551 @@ class _ChartCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+              _StatusBadge(status: report.companyStatus),
             ],
           ),
+
           const SizedBox(height: 20),
-          chart,
+
+          // ================================================================
+          // BASIC STATISTICS
+          // ================================================================
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _MiniStat(
+                icon: Icons.directions_car_outlined,
+                label: 'المركبات',
+                value: report.vehiclesCount,
+              ),
+
+              _MiniStat(
+                icon: Icons.check_circle_outline,
+                label: 'النشطة',
+                value: report.activeVehiclesCount,
+              ),
+
+              _MiniStat(
+                icon: Icons.people_outline,
+                label: 'السائقون',
+                value: report.driversCount,
+              ),
+
+              _MiniStat(
+                icon: Icons.groups_outlined,
+                label: 'المدراء',
+                value: report.managersCount,
+              ),
+
+              _MiniStat(
+                icon: Icons.access_time_outlined,
+                label: 'الحضور',
+                value: report.attendanceCount,
+              ),
+
+              _MiniStat(
+                icon: Icons.card_giftcard_outlined,
+                label: 'رموز الضيوف',
+                value: report.guestCodesIssuedCount,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ================================================================
+          // SOS + DESTINATIONS
+          // ================================================================
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth > 700;
+
+              final sos = _BreakdownCard(
+                title: 'أحداث SOS',
+                icon: Icons.warning_amber_outlined,
+                color: AppColors.danger,
+                total: report.sos.total,
+                rows: [
+                  _BreakdownRow(label: 'نشطة', value: report.sos.active),
+                  _BreakdownRow(
+                    label: 'تمت رؤيتها',
+                    value: report.sos.acknowledged,
+                  ),
+                  _BreakdownRow(label: 'تم حلها', value: report.sos.resolved),
+                ],
+              );
+
+              final destinations = _BreakdownCard(
+                title: 'الوجهات',
+                icon: Icons.navigation_outlined,
+                color: AppColors.primary,
+                total: report.destinations.total,
+                rows: [
+                  _BreakdownRow(
+                    label: 'مرسلة',
+                    value: report.destinations.sent,
+                  ),
+                  _BreakdownRow(
+                    label: 'مقبولة',
+                    value: report.destinations.accepted,
+                  ),
+                  _BreakdownRow(
+                    label: 'مرفوضة',
+                    value: report.destinations.rejected,
+                  ),
+                  _BreakdownRow(
+                    label: 'ملغاة',
+                    value: report.destinations.cancelled,
+                  ),
+                ],
+              );
+
+              if (wide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: sos),
+                    const SizedBox(width: 14),
+                    Expanded(child: destinations),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [sos, const SizedBox(height: 14), destinations],
+              );
+            },
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Line Chart (Mock) ──────────────────────────────────────────────────────
+// ============================================================================
+// BREAKDOWN CARD
+// ============================================================================
 
-class _LineChartWidget extends StatelessWidget {
+class _BreakdownCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final int total;
+  final List<_BreakdownRow> rows;
+
+  const _BreakdownCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.total,
+    required this.rows,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final data = [2, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14];
-    final max = data.reduce((a, b) => a > b ? a : b).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 18),
 
-    return SizedBox(
-      height: 180,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(data.length, (i) {
-          final height = (data[i] / max) * 160;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    height: height,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primary.withValues(alpha: 0.6),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${i + 1}',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      color: AppColors.textHint,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
+
+              const Spacer(),
+
+              Text(
+                total.toString(),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          if (rows.every((row) => row.value == 0))
+            const Text(
+              'لا توجد بيانات',
+              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            )
+          else
+            ...rows.map(
+              (row) => _BreakdownItem(row: row, total: total, color: color),
             ),
-          );
-        }),
+        ],
       ),
     );
   }
 }
 
-// ── Pie Chart (Mock) ───────────────────────────────────────────────────────
+class _BreakdownItem extends StatelessWidget {
+  final _BreakdownRow row;
+  final int total;
+  final Color color;
 
-class _PieChartWidget extends StatelessWidget {
+  const _BreakdownItem({
+    required this.row,
+    required this.total,
+    required this.color,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 120,
-          width: 120,
-          child: Stack(
+    final ratio = total == 0 ? 0.0 : row.value / total;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              // Simple pie chart representation
-              Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      AppColors.success,
-                      AppColors.success,
-                      AppColors.warning,
-                      AppColors.warning,
-                      AppColors.danger,
-                      AppColors.danger,
-                      AppColors.success,
-                    ],
+              Expanded(
+                child: Text(
+                  row.label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
-              Center(
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '87',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
+
+              Text(
+                row.value.toString(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
-        _PieLegend(color: AppColors.success, label: 'في الخدمة', value: '74'),
-        const SizedBox(height: 6),
-        _PieLegend(color: AppColors.warning, label: 'صيانة', value: '8'),
-        const SizedBox(height: 6),
-        _PieLegend(color: AppColors.danger, label: 'معطلة', value: '5'),
-      ],
+
+          const SizedBox(height: 5),
+
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: AppColors.surface,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _PieLegend extends StatelessWidget {
-  final Color color;
+// ============================================================================
+// STAT CARD
+// ============================================================================
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
-  const _PieLegend({
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
     required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 19),
+          ),
+
+          const SizedBox(height: 11),
+
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// MINI STAT
+// ============================================================================
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int value;
+
+  const _MiniStat({
+    required this.icon,
     required this.label,
     required this.value,
   });
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(2),
-        ),
+  Widget build(BuildContext context) {
+    return Container(
+      width: 145,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.border),
       ),
-      const SizedBox(width: 6),
-      Expanded(
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-        ),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: AppColors.primary),
+
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      Text(
-        value,
-        style: const TextStyle(
+    );
+  }
+}
+
+// ============================================================================
+// STATUS BADGE
+// ============================================================================
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = status.toLowerCase() == 'active';
+
+    final color = isActive ? AppColors.success : AppColors.danger;
+
+    final text = isActive ? 'نشطة' : status;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: color,
         ),
       ),
-    ],
-  );
-}
-
-// ── Top Companies Table ────────────────────────────────────────────────────
-
-class _TopCompaniesTable extends StatelessWidget {
-  final _data = const [
-    ('شركة النقل الحديث', '2,847', '98.5%', AppColors.success),
-    ('شركة الخليج للنقل', '2,134', '96.2%', AppColors.success),
-    ('شركة الأمانة', '1,923', '94.8%', AppColors.success),
-    ('شركة الرياض للخدمات', '1,456', '91.3%', AppColors.warning),
-    ('شركة الفجر', '1,087', '87.9%', AppColors.warning),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'الشركة',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 60,
-                  child: Text(
-                    'الرحلات',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 50,
-                  child: Text(
-                    'الأداء',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Rows
-          ..._data.asMap().entries.map((e) {
-            final i = e.key;
-            final d = e.value;
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          d.$1,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 60,
-                        child: Text(
-                          d.$2,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Text(
-                          d.$3,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: d.$4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (i < _data.length - 1)
-                  const Divider(height: 1, color: AppColors.divider),
-              ],
-            );
-          }),
-        ],
-      ),
     );
   }
 }
 
-// ── Top Drivers Table ──────────────────────────────────────────────────────
+// ============================================================================
+// LOADING
+// ============================================================================
 
-class _TopDriversTable extends StatelessWidget {
-  final _data = const [
-    ('أحمد محمد', '327', '5.0', AppColors.success),
-    ('خالد العمري', '298', '4.9', AppColors.success),
-    ('محمد السعيد', '276', '4.8', AppColors.success),
-    ('عبدالله الأحمد', '251', '4.7', AppColors.success),
-    ('سعيد الحربي', '234', '4.6', AppColors.warning),
-  ];
+class _LoadingBlock extends StatelessWidget {
+  final String message;
+
+  const _LoadingBlock({this.message = 'جاري تحميل التقارير...'});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'السائق',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 60,
-                  child: Text(
-                    'الرحلات',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 50,
-                  child: Text(
-                    'التقييم',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Rows
-          ..._data.asMap().entries.map((e) {
-            final i = e.key;
-            final d = e.value;
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          d.$1,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 60,
-                        child: Text(
-                          d.$2,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              size: 11,
-                              color: AppColors.warning,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              d.$3,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (i < _data.length - 1)
-                  const Divider(height: 1, color: AppColors.divider),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 80),
+      child: Center(
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
 
-// ── Recent Activities Table ────────────────────────────────────────────────
+            const SizedBox(height: 14),
 
-class _RecentActivitiesTable extends StatelessWidget {
-  final _data = const [
-    (
-      'شركة النقل الحديث',
-      'اكتملت 47 رحلة بنجاح',
-      'منذ 5 دقائق',
-      Icons.check_circle_outline,
-      AppColors.success,
-    ),
-    (
-      'السائق أحمد محمد',
-      'بدأ رحلة جديدة - الرياض إلى جدة',
-      'منذ 15 دقيقة',
-      Icons.navigation_outlined,
-      AppColors.primary,
-    ),
-    (
-      'شركة الخليج',
-      'تم تسجيل 3 مركبات جديدة',
-      'منذ 32 دقيقة',
-      Icons.directions_car_outlined,
-      AppColors.success,
-    ),
-    (
-      'السائق خالد العمري',
-      'طلب صيانة للمركبة #7845',
-      'منذ ساعة',
-      Icons.build_outlined,
-      AppColors.warning,
-    ),
-    (
-      'شركة الأمانة',
-      'تحديث بيانات 5 سائقين',
-      'منذ ساعتين',
-      Icons.people_outline,
-      AppColors.primary,
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: _data.asMap().entries.map((e) {
-          final i = e.key;
-          final d = e.value;
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: d.$5.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      child: Icon(d.$4, color: d.$5, size: 17),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            d.$1,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            d.$2,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      d.$3,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-                  ],
-                ),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
               ),
-              if (i < _data.length - 1)
-                const Divider(height: 1, color: AppColors.divider),
-            ],
-          );
-        }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+// ============================================================================
+// EMPTY
+// ============================================================================
+
+class _EmptyBlock extends StatelessWidget {
+  const _EmptyBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 80),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.bar_chart_outlined, size: 50, color: AppColors.textHint),
+
+            const SizedBox(height: 12),
+
+            const Text(
+              'لا توجد تقارير',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            const Text(
+              'لا توجد بيانات مطابقة للفلاتر المحددة',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// ERROR
+// ============================================================================
+
+class _ErrorBlock extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorBlock({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, size: 42, color: AppColors.danger),
+
+            const SizedBox(height: 12),
+
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// DATA CLASS
+// ============================================================================
+
+class _BreakdownRow {
+  final String label;
+  final int value;
+
+  const _BreakdownRow({required this.label, required this.value});
 }

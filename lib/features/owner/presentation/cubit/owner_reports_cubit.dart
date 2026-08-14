@@ -1,73 +1,161 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../data/datasources/owner_remote_datasource.dart';
 import '../../data/models/owner_reports_model.dart';
-
-part 'owner_reports_state.dart';
+import 'owner_reports_state.dart';
 
 class OwnerReportsCubit extends Cubit<OwnerReportsState> {
-  final OwnerRemoteDataSource _ds = OwnerRemoteDataSource();
+  final OwnerReportsRemoteDataSource _ds =
+      OwnerReportsRemoteDataSource();
 
-  OwnerReportsCubit() : super(OwnerReportsInitial());
+  OwnerReportsCubit()
+      : super(OwnerReportsInitial());
 
-  /// Load reports with optional filters
-  Future<void> load({int? companyId, String? dateFrom, String? dateTo}) async {
-    if (isClosed) return;
-    emit(OwnerReportsLoading());
+  // ===========================================================================
+  // CURRENT FILTERS
+  // ===========================================================================
+
+  int? companyId;
+  String? dateFrom;
+  String? dateTo;
+
+  // ===========================================================================
+  // CURRENT REPORTS
+  // ===========================================================================
+
+  List<OwnerReportModel> _currentReports = [];
+
+  List<OwnerReportModel> get currentReports =>
+      List.unmodifiable(_currentReports);
+
+  // ===========================================================================
+  // LOAD REPORTS
+  // ===========================================================================
+
+  Future<void> loadReports({
+    int? companyId,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    this.companyId = companyId;
+    this.dateFrom = dateFrom;
+    this.dateTo = dateTo;
+
+    emit(
+      OwnerReportsLoading(
+        previousReports: _currentReports,
+      ),
+    );
+
     try {
-      final data = await _ds.getReports(
+      final reports = await _ds.getReports(
         companyId: companyId,
         dateFrom: dateFrom,
         dateTo: dateTo,
       );
-      final reports = OwnerReportsModel.fromJson(data);
-      if (!isClosed) {
-        emit(
-          OwnerReportsLoaded(
-            reports: reports,
-            companyId: companyId,
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!isClosed) emit(OwnerReportsError(e.toString()));
-    }
-  }
 
-  /// Refresh with current filters
-  Future<void> refresh() async {
-    final currentState = state;
-    if (currentState is OwnerReportsLoaded) {
-      await load(
-        companyId: currentState.companyId,
-        dateFrom: currentState.dateFrom,
-        dateTo: currentState.dateTo,
+      _currentReports = reports;
+
+      emit(
+        OwnerReportsLoaded(
+          reports: reports,
+          companyId: companyId,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        ),
       );
-    } else {
-      await load();
+    } catch (e) {
+      emit(
+        OwnerReportsFailure(
+          e.toString(),
+          previousReports: _currentReports,
+        ),
+      );
     }
   }
 
-  /// Export report as PDF or Excel
-  ///
-  /// Note: File download is not yet implemented in ApiClient
-  /// This will throw UnimplementedError
-  Future<void> export({
+  // ===========================================================================
+  // EXPORT
+  // ===========================================================================
+
+  Future<void> exportReports({
     required String format,
     int? companyId,
     String? dateFrom,
     String? dateTo,
   }) async {
+    // إذا لم يتم إرسال الفلاتر، استخدم الفلاتر الحالية
+    final selectedCompanyId = companyId ?? this.companyId;
+    final selectedDateFrom = dateFrom ?? this.dateFrom;
+    final selectedDateTo = dateTo ?? this.dateTo;
+
+    emit(
+      OwnerReportsExporting(
+        reports: _currentReports,
+        companyId: selectedCompanyId,
+        dateFrom: selectedDateFrom,
+        dateTo: selectedDateTo,
+      ),
+    );
+
     try {
-      await _ds.exportReport(
+      final response = await _ds.exportReports(
         format: format,
-        companyId: companyId,
-        dateFrom: dateFrom,
-        dateTo: dateTo,
+        companyId: selectedCompanyId,
+        dateFrom: selectedDateFrom,
+        dateTo: selectedDateTo,
+      );
+
+      emit(
+        OwnerReportsExported(
+          bytes: Uint8List.fromList(response.bodyBytes),
+          format: format,
+          reports: _currentReports,
+        ),
+      );
+
+      // نرجع للحالة Loaded بعد التصدير حتى تبقى الصفحة طبيعية
+      emit(
+        OwnerReportsLoaded(
+          reports: _currentReports,
+          companyId: selectedCompanyId,
+          dateFrom: selectedDateFrom,
+          dateTo: selectedDateTo,
+        ),
       );
     } catch (e) {
-      if (!isClosed) emit(OwnerReportsError(e.toString()));
+      emit(
+        OwnerReportsFailure(
+          e.toString(),
+          previousReports: _currentReports,
+        ),
+      );
+
+      // إذا كانت لدينا بيانات، نرجعها مباشرة
+      if (_currentReports.isNotEmpty) {
+        emit(
+          OwnerReportsLoaded(
+            reports: _currentReports,
+            companyId: selectedCompanyId,
+            dateFrom: selectedDateFrom,
+            dateTo: selectedDateTo,
+          ),
+        );
+      }
     }
+  }
+
+  // ===========================================================================
+  // CLEAR FILTERS
+  // ===========================================================================
+
+  Future<void> clearFilters() async {
+    companyId = null;
+    dateFrom = null;
+    dateTo = null;
+
+    await loadReports();
   }
 }

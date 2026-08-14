@@ -13,29 +13,80 @@ class AuthCubit extends Cubit<AuthState> {
 
   AuthCubit() : super(AuthInitial());
 
-  Future<void> adminLogin(String email, String password) async {
-    emit(AuthLoading());
-    try {
-      final data = await _ds.adminLogin(email, password);
-      if (data['challenge_token'] != null) {
-        emit(AdminLoginSuccess(challengeToken: data['challenge_token']));
-        return;
-      }
-      final token = data['token'] as String;
-      final user = UserModel.fromAdminJson(data);
-      await _store.saveToken(token);
-      await _store.saveRole(user.role);
-      await _store.saveName(user.name);
-      if (user.isFirstLogin) {
-        emit(MustChangePassword());
-      } else {
-        emit(AdminLoginSuccess(user: user, token: token));
-      }
-    } catch (err) {
-      emit(AuthFailure(err.toString()));
-    }
-  }
+  // Future<void> adminLogin(String email, String password) async {
+  //   emit(AuthLoading());
+  //   try {
+  //     final data = await _ds.adminLogin(email, password);
+  //     if (data['challenge_token'] != null) {
+  //       emit(AdminLoginSuccess(challengeToken: data['challenge_token']));
+  //       return;
+  //     }
+  //     final token = data['token'] as String;
+  //     final user = UserModel.fromAdminJson(data);
+  //     await _store.saveToken(token);
+  //     await _store.saveRole(user.role);
+  //     await _store.saveName(user.name);
+  //     if (user.isFirstLogin) {
+  //       emit(MustChangePassword());
+  //     } else {
+  //       emit(AdminLoginSuccess(user: user, token: token));
+  //     }
+  //   } catch (err) {
+  //     emit(AuthFailure(err.toString()));
+  //   }
+  // }
+Future<void> adminLogin(String email, String password) async {
+  emit(AuthLoading());
 
+  try {
+    final data = await _ds.adminLogin(email, password);
+
+    final stage = data['stage'];
+
+    // First time TOTP setup
+    if (stage == 'totp_setup_required') {
+      emit(
+        AdminTotpSetupRequired(
+          challengeToken: data['challenge_token'] as String,
+          secret: data['secret'] as String,
+          provisioningUri: data['provisioning_uri'] as String,
+        ),
+      );
+      return;
+    }
+
+    // TOTP already configured
+    if (stage == 'totp_required') {
+      emit(
+        AdminTotpRequired(
+          challengeToken: data['challenge_token'] as String,
+        ),
+      );
+      return;
+    }
+
+    // Normal login
+    final token = data['token'] as String;
+    final user = UserModel.fromAdminJson(data);
+
+    await _store.saveToken(token);
+    await _store.saveRole(user.role);
+    await _store.saveName(user.name);
+
+    if (user.isFirstLogin) {
+      emit(MustChangePassword());
+    } else {
+      emit(
+        AdminLoginSuccess(
+          user: user,
+          token: token,
+        ),
+      );
+    }
+  } catch (err) {
+    emit(AuthFailure(err.toString()));
+  }
+}
   Future<void> adminVerifyTotp(String challengeToken, String code) async {
     emit(AuthLoading());
     try {

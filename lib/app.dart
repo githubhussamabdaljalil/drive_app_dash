@@ -23,6 +23,7 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/verify_otp_screen.dart';
 import 'features/auth/presentation/screens/change_password_screen.dart';
 import 'features/auth/presentation/screens/forgot_password_screen.dart';
+import 'features/auth/presentation/screens/setup_totp_screen.dart';
 
 // Admin screens (owner + manager)
 import 'features/home/presentation/screens/admin_dashboard_screen.dart';
@@ -83,7 +84,17 @@ class VTFMSApp extends StatelessWidget {
             case AppRoutes.login:
               final role = settings.arguments as String? ?? 'manager';
               return _r(settings, LoginScreen(role: role));
+            case AppRoutes.setupTotp:
+              final args = settings.arguments as Map<String, dynamic>;
 
+              return _r(
+                settings,
+                SetupTotpScreen(
+                  challengeToken: args['challengeToken'] as String,
+                  secret: args['secret'] as String,
+                  provisioningUri: args['provisioningUri'] as String,
+                ),
+              );
             case AppRoutes.verifyTotp:
               final token = settings.arguments as String? ?? '';
               return _r(settings, VerifyOtpScreen(challengeToken: token));
@@ -126,7 +137,9 @@ class VTFMSApp extends StatelessWidget {
               final role = LocalStorageService.instance.getRole();
               return _r(
                 settings,
-                role == 'owner' ? const ReportsScreen() : const ManagerReportsScreen(),
+                role == 'owner'
+                    ? const ReportsScreen()
+                    : const ManagerReportsScreen(),
               );
             case AppRoutes.profile:
               return _r(settings, const ProfileScreen());

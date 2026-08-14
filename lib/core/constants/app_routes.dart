@@ -8,7 +8,7 @@ class AppRoutes {
   static const String verifyTotp = '/verify-totp';
   static const String changePassword = '/change-password';
   static const String forgotPassword = '/forgot-password';
-
+  static const String setupTotp = '/setup-totp';
   // ── Admin (owner + manager) ─────────────────────────────────────────
   static const String adminDashboard = '/admin/dashboard';
   static const String companies = '/admin/companies';

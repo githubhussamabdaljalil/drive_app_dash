@@ -1,4 +1,4 @@
-import '../../../../core/services/api/api_client.dart';
+import '../../../../core/services/api/api_client.dart' show ApiClient, ApiException;
 import '../models/sub_manager_model.dart';
 
 class SubManagerRemoteDataSource {
@@ -34,9 +34,51 @@ class SubManagerRemoteDataSource {
   }
 
   // Static catalog — no auth required.
+  //
+  // BUGFIX: this used to do `res['data'] as List? ?? []` and swallow any
+  // mismatch (wrong envelope key, nested shape, etc.) into a silent empty
+  // list. No exception was thrown, so the cubit emitted a normal
+  // SubManagerLoaded(..., []) — no error, no retry banner — and "Add
+  // sub-manager" just stayed permanently disabled with zero feedback.
+  //
+  // Fix: accept the couple of envelope shapes a Laravel endpoint like this
+  // realistically returns ({"data":[...]}, {"permissions":[...]}, or a bare
+  // array), and if none of them yield a non-empty list, throw instead of
+  // returning []. That routes the failure through the normal
+  // SubManagerError path so the user sees *why* and can retry.
   Future<List<PermissionOption>> getPermissionCatalog() async {
     final res = await _api.get('/meta/permissions');
-    final list = res['data'] as List? ?? [];
-    return list.map((e) => PermissionOption.fromJson(e)).toList();
+
+    // TEMP DEBUG — remove once confirmed working. Prints the raw decoded
+    // body so you can see exactly what shape /meta/permissions returns if
+    // the button is still disabled after this fix.
+    // ignore: avoid_print
+    print('[VTFMS] /meta/permissions raw response: $res');
+
+    final dynamic raw = res['data'] ?? res['permissions'] ?? res['meta'];
+    final List<dynamic>? list = raw is List
+        ? raw
+        : (raw is Map ? raw.values.toList() : null);
+
+    if (list == null) {
+      throw ApiException(
+        'تعذر تحميل قائمة الصلاحيات — شكل استجابة غير متوقع من /meta/permissions',
+        0,
+      );
+    }
+
+    final parsed = list
+        .whereType<Map>()
+        .map((e) => PermissionOption.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    if (parsed.isEmpty) {
+      throw ApiException(
+        'قائمة الصلاحيات فارغة من السيرفر — تحقق من /meta/permissions',
+        0,
+      );
+    }
+
+    return parsed;
   }
 }

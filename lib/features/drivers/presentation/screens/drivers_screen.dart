@@ -25,11 +25,11 @@ class DriversScreen extends StatelessWidget {
   }
 }
 
-const _statusOptions = <String, String>{
-  '': 'كل الحالات',
-  'active': 'نشط',
-  'inactive': 'غير نشط',
-};
+// const _statusOptions = <String, String>{
+//   '': 'كل الحالات',
+//   'active': 'نشط',
+//   'inactive': 'غير نشط',
+// };
 
 class _DriversBody extends StatefulWidget {
   const _DriversBody();
@@ -40,7 +40,7 @@ class _DriversBody extends StatefulWidget {
 
 class _DriversBodyState extends State<_DriversBody> {
   String _search = '';
-  String _statusFilter = '';
+  // String _statusFilter = '';
 
   @override
   void initState() {
@@ -60,7 +60,7 @@ class _DriversBodyState extends State<_DriversBody> {
       },
       builder: (ctx, state) {
         final drivers = _driversOf(state);
-        final filtered = _applyFilters(drivers, _search, _statusFilter);
+        final filtered = _applyFilters(drivers, _search);
         final isLoading = state is DriverLoading;
         final isSubmitting = state is DriverSubmitting;
 
@@ -72,9 +72,9 @@ class _DriversBodyState extends State<_DriversBody> {
               _Header(count: drivers.length, onAdd: () => _showForm(ctx)),
               const SizedBox(height: 20),
               _FiltersRow(
-                statusFilter: _statusFilter,
+                // statusFilter: _statusFilter,
                 onSearchChanged: (v) => setState(() => _search = v),
-                onStatusChanged: (v) => setState(() => _statusFilter = v),
+                // onStatusChanged: (v) => setState(() => _statusFilter = v),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -104,15 +104,15 @@ class _DriversBodyState extends State<_DriversBody> {
         _ => const <DriverModel>[],
       };
 
-  static List<DriverModel> _applyFilters(List<DriverModel> drivers, String search, String status) {
+  static List<DriverModel> _applyFilters(List<DriverModel> drivers, String search) {
     final query = search.trim().toLowerCase();
     return drivers.where((d) {
-      final matchesSearch = query.isEmpty ||
+      return query.isEmpty ||
           d.name.toLowerCase().contains(query) ||
           d.phone.toLowerCase().contains(query) ||
           (d.email?.toLowerCase().contains(query) ?? false);
-      final matchesStatus = status.isEmpty || d.status == status;
-      return matchesSearch && matchesStatus;
+      // final matchesStatus = status.isEmpty || d.status == status;
+      // return matchesSearch && matchesStatus;
     }).toList();
   }
 
@@ -221,11 +221,15 @@ class _Header extends StatelessWidget {
 }
 
 class _FiltersRow extends StatelessWidget {
-  final String statusFilter;
+  // final String statusFilter;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String> onStatusChanged;
+  // final ValueChanged<String> onStatusChanged;
 
-  const _FiltersRow({required this.statusFilter, required this.onSearchChanged, required this.onStatusChanged});
+  const _FiltersRow({
+    // required this.statusFilter,
+    required this.onSearchChanged,
+    // required this.onStatusChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -249,25 +253,25 @@ class _FiltersRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Container(
-          height: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: statusFilter,
-              items: _statusOptions.entries
-                  .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontSize: 13))))
-                  .toList(),
-              onChanged: (v) => onStatusChanged(v ?? ''),
-            ),
-          ),
-        ),
+        // const SizedBox(width: 12),
+        // Container(
+        //   height: 42,
+        //   padding: const EdgeInsets.symmetric(horizontal: 12),
+        //   decoration: BoxDecoration(
+        //     color: AppColors.surface,
+        //     borderRadius: BorderRadius.circular(8),
+        //     border: Border.all(color: AppColors.border),
+        //   ),
+        //   child: DropdownButtonHideUnderline(
+        //     child: DropdownButton<String>(
+        //       value: statusFilter,
+        //       items: _statusOptions.entries
+        //           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontSize: 13))))
+        //           .toList(),
+        //       onChanged: (v) => onStatusChanged(v ?? ''),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

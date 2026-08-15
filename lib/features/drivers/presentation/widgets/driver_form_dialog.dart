@@ -69,7 +69,7 @@ class _DriverFormDialogState extends State<DriverFormDialog> {
       'name': _name.text.trim(),
       'phone': _phone.text.trim(),
       if (_email.text.trim().isNotEmpty) 'email': _email.text.trim(),
-      if (_status != null) 'status': _status,
+      // 'status': _status, // commented out — status field hidden from UI
     };
     final success = await cubit.update(widget.driver!.id, body);
     if (!mounted) return;
@@ -203,29 +203,30 @@ class _DriverFormFields extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         if (isEdit) ...[
-          const Text('الحالة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-          const SizedBox(height: 6),
-          Container(
-            height: 46,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceInput,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String?>(
-                value: status,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: 'active', child: Text('نشط', style: TextStyle(fontSize: 13))),
-                  DropdownMenuItem(value: 'inactive', child: Text('غير نشط', style: TextStyle(fontSize: 13))),
-                ],
-                onChanged: onStatusChanged,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
+          // -- Status field (commented out, uncomment to re-enable) --
+          // const Text('الحالة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          // const SizedBox(height: 6),
+          // Container(
+          //   height: 46,
+          //   padding: const EdgeInsets.symmetric(horizontal: 12),
+          //   decoration: BoxDecoration(
+          //     color: AppColors.surfaceInput,
+          //     borderRadius: BorderRadius.circular(8),
+          //     border: Border.all(color: AppColors.border),
+          //   ),
+          //   child: DropdownButtonHideUnderline(
+          //     child: DropdownButton<String?>(
+          //       value: status,
+          //       isExpanded: true,
+          //       items: const [
+          //         DropdownMenuItem(value: 'active', child: Text('نشط', style: TextStyle(fontSize: 13))),
+          //         DropdownMenuItem(value: 'inactive', child: Text('غير نشط', style: TextStyle(fontSize: 13))),
+          //       ],
+          //       onChanged: onStatusChanged,
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(height: 14),
         ] else ...[
           Container(
             width: double.infinity,

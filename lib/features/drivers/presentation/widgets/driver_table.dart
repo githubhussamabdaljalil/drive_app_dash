@@ -71,7 +71,7 @@ class _TableHeader extends StatelessWidget {
         Expanded(flex: 3, child: _HeaderCell('السائق')),
         Expanded(flex: 2, child: _HeaderCell('الهاتف')),
         Expanded(flex: 2, child: _HeaderCell('المركبة المرتبطة', centered: true)),
-        Expanded(flex: 2, child: _HeaderCell('الحالة', centered: true)),
+        // Expanded(flex: 2, child: _HeaderCell('الحالة', centered: true)),
         SizedBox(width: 130, child: _HeaderCell('إجراءات', centered: true)),
       ]),
     );
@@ -109,7 +109,7 @@ class _DriverRow extends StatelessWidget {
           child: Text(d.assignedVehiclePlate ?? '—',
               textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         ),
-        Expanded(flex: 2, child: Center(child: _StatusChip(active: d.isActive))),
+        // Expanded(flex: 2, child: Center(child: _StatusChip(active: d.isActive))),
         SizedBox(
           width: 130,
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [

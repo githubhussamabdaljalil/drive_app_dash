@@ -43,41 +43,54 @@ class _RouteHistoryBody extends StatefulWidget {
 class _RouteHistoryBodyState extends State<_RouteHistoryBody> {
   final MapController _mapController = MapController();
   VehicleModel? _vehicle;
-  late DateTime _from;
-  late DateTime _to;
+  late DateTime _selectedDay;
+  late TimeOfDay _fromTime;
+  late TimeOfDay _toTime;
+
+  DateTime get _from => DateTime(
+        _selectedDay.year, _selectedDay.month, _selectedDay.day,
+        _fromTime.hour, _fromTime.minute,
+      );
+
+  DateTime get _to => DateTime(
+        _selectedDay.year, _selectedDay.month, _selectedDay.day,
+        _toTime.hour, _toTime.minute,
+      );
 
   @override
   void initState() {
     super.initState();
     context.read<VehicleCubit>().load();
-    _to = DateTime.now();
-    _from = _to.subtract(const Duration(hours: 24));
+    _selectedDay = DateTime.now();
+    _fromTime = const TimeOfDay(hour: 0, minute: 0);
+    _toTime = const TimeOfDay(hour: 23, minute: 59);
   }
 
-  Future<void> _pickDateTime({required bool isFrom}) async {
-    final initial = isFrom ? _from : _to;
+  Future<void> _pickDay() async {
+    final now = DateTime.now();
     final date = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(2024),
-      lastDate: DateTime.now(),
-      helpText: isFrom ? 'من تاريخ' : 'إلى تاريخ',
+      initialDate: _selectedDay,
+      firstDate: now.subtract(const Duration(days: 30)),
+      lastDate: now,
+      helpText: 'اختر اليوم',
     );
     if (date == null || !mounted) return;
+    setState(() => _selectedDay = date);
+  }
 
-    final time = await showTimePicker(
+  Future<void> _pickTime({required bool isFrom}) async {
+    final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-      helpText: isFrom ? 'من وقت' : 'إلى وقت',
+      initialTime: isFrom ? _fromTime : _toTime,
+      helpText: isFrom ? 'من ساعة' : 'إلى ساعة',
     );
-    if (time == null) return;
-
-    final combined = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    if (picked == null) return;
     setState(() {
       if (isFrom) {
-        _from = combined;
+        _fromTime = picked;
       } else {
-        _to = combined;
+        _toTime = picked;
       }
     });
   }
@@ -86,7 +99,7 @@ class _RouteHistoryBodyState extends State<_RouteHistoryBody> {
     if (_vehicle == null) return;
     if (_to.isBefore(_from)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'), backgroundColor: AppColors.danger),
+        const SnackBar(content: Text('ساعة النهاية يجب أن تكون بعد ساعة البداية'), backgroundColor: AppColors.danger),
       );
       return;
     }
@@ -109,11 +122,13 @@ class _RouteHistoryBodyState extends State<_RouteHistoryBody> {
 
           _Filters(
             vehicle: _vehicle,
-            from: _from,
-            to: _to,
+            selectedDay: _selectedDay,
+            fromTime: _fromTime,
+            toTime: _toTime,
             onVehicleChanged: (v) => setState(() => _vehicle = v),
-            onPickFrom: () => _pickDateTime(isFrom: true),
-            onPickTo: () => _pickDateTime(isFrom: false),
+            onPickDay: _pickDay,
+            onPickFromTime: () => _pickTime(isFrom: true),
+            onPickToTime: () => _pickTime(isFrom: false),
             onSearch: _vehicle == null ? null : _search,
           ),
           const SizedBox(height: 18),
@@ -214,20 +229,24 @@ class _RouteHistoryBodyState extends State<_RouteHistoryBody> {
 
 class _Filters extends StatelessWidget {
   final VehicleModel? vehicle;
-  final DateTime from;
-  final DateTime to;
+  final DateTime selectedDay;
+  final TimeOfDay fromTime;
+  final TimeOfDay toTime;
   final ValueChanged<VehicleModel?> onVehicleChanged;
-  final VoidCallback onPickFrom;
-  final VoidCallback onPickTo;
+  final VoidCallback onPickDay;
+  final VoidCallback onPickFromTime;
+  final VoidCallback onPickToTime;
   final VoidCallback? onSearch;
 
   const _Filters({
     required this.vehicle,
-    required this.from,
-    required this.to,
+    required this.selectedDay,
+    required this.fromTime,
+    required this.toTime,
     required this.onVehicleChanged,
-    required this.onPickFrom,
-    required this.onPickTo,
+    required this.onPickDay,
+    required this.onPickFromTime,
+    required this.onPickToTime,
     required this.onSearch,
   });
 
@@ -281,12 +300,16 @@ class _Filters extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 200,
-                child: _FieldLabel(label: 'من', child: _DateButton(value: from, onTap: onPickFrom)),
+                width: 180,
+                child: _FieldLabel(label: 'اليوم', child: _DayButton(value: selectedDay, onTap: onPickDay)),
               ),
               SizedBox(
-                width: 200,
-                child: _FieldLabel(label: 'إلى', child: _DateButton(value: to, onTap: onPickTo)),
+                width: 140,
+                child: _FieldLabel(label: 'من ساعة', child: _TimeButton(value: fromTime, onTap: onPickFromTime)),
+              ),
+              SizedBox(
+                width: 140,
+                child: _FieldLabel(label: 'إلى ساعة', child: _TimeButton(value: toTime, onTap: onPickToTime)),
               ),
               SizedBox(
                 width: 140,
@@ -318,10 +341,37 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-class _DateButton extends StatelessWidget {
+class _DayButton extends StatelessWidget {
   final DateTime value;
   final VoidCallback onTap;
-  const _DateButton({required this.value, required this.onTap});
+  const _DayButton({required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final label = '${value.year}-${two(value.month)}-${two(value.day)}';
+    return _FilterButton(icon: Icons.event_outlined, label: label, onTap: onTap);
+  }
+}
+
+class _TimeButton extends StatelessWidget {
+  final TimeOfDay value;
+  final VoidCallback onTap;
+  const _TimeButton({required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final label = '${two(value.hour)}:${two(value.minute)}';
+    return _FilterButton(icon: Icons.schedule_outlined, label: label, onTap: onTap);
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _FilterButton({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -338,18 +388,13 @@ class _DateButton extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.event_outlined, size: 16, color: AppColors.textSecondary),
+            Icon(icon, size: 16, color: AppColors.textSecondary),
             const SizedBox(width: 8),
-            Expanded(child: Text(_fmt(value), style: const TextStyle(fontSize: 12, color: AppColors.textPrimary))),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary))),
           ],
         ),
       ),
     );
-  }
-
-  String _fmt(DateTime d) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${d.year}-${two(d.month)}-${two(d.day)}  ${two(d.hour)}:${two(d.minute)}';
   }
 }
 

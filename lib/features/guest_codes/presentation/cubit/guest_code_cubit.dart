@@ -20,18 +20,18 @@ class GuestCodeCubit extends Cubit<GuestCodeState> {
     }
   }
 
-  Future<bool> create({required int vehicleId, required int expiresInMinutes}) async {
-    if (isClosed) return false;
+  Future<GuestCodeModel?> create({required int vehicleId, required int expiresInMinutes}) async {
+    if (isClosed) return null;
     final current = _currentList;
     emit(GuestCodeSubmitting(current));
     try {
-      await _ds.createGuestCode(vehicleId: vehicleId, expiresInMinutes: expiresInMinutes);
+      final created = await _ds.createGuestCode(vehicleId: vehicleId, expiresInMinutes: expiresInMinutes);
       final list = await _ds.getGuestCodes();
       if (!isClosed) emit(GuestCodeLoaded(list));
-      return true;
+      return created;
     } catch (e) {
       if (!isClosed) emit(GuestCodeError(e.toString(), current));
-      return false;
+      return null;
     }
   }
 

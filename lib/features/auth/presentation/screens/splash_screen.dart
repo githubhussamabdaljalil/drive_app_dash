@@ -29,6 +29,16 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _setupAnimations();
+
+    // If this is a guest tracking deep-link, skip auth check entirely.
+    final fragment = Uri.base.fragment;
+    if (fragment.startsWith(AppRoutes.guestTrack)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pushReplacementNamed(context, fragment);
+      });
+      return;
+    }
+
     _checkAuthStatus();
   }
 

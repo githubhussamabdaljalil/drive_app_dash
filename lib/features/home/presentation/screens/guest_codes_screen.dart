@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/dashboard_layout.dart';
@@ -10,6 +12,12 @@ import 'package:driver_app_dash/features/guest_codes/data/models/guest_code_mode
 import 'package:driver_app_dash/features/guest_codes/presentation/cubit/guest_code_cubit.dart';
 import 'package:driver_app_dash/features/vehicles/data/models/vehicle_model.dart';
 import 'package:driver_app_dash/features/vehicles/presentation/cubit/vehicle_cubit.dart';
+
+// Builds the tracking URL for a given guest code.
+String _buildTrackingUrl(String code) {
+  final origin = Uri.base.origin;
+  return '$origin/#${AppRoutes.guestTrack}/$code';
+}
 
 class GuestCodesScreen extends StatelessWidget {
   const GuestCodesScreen({super.key});
@@ -100,6 +108,7 @@ class _GuestCodesBodyState extends State<_GuestCodesBody> {
                               opacity: isSubmitting ? .6 : 1,
                               child: _GuestCodeCard(
                                 code: codes[i],
+                                onShare: () => _showShareDialog(ctx, codes[i]),
                                 onRevoke: codes[i].isActive ? () => _confirmRevoke(ctx, codes[i]) : null,
                               ),
                             ),
@@ -123,6 +132,13 @@ class _GuestCodesBodyState extends State<_GuestCodesBody> {
         ],
         child: const _GuestCodeFormDialog(),
       ),
+    );
+  }
+
+  void _showShareDialog(BuildContext context, GuestCodeModel code) {
+    showDialog(
+      context: context,
+      builder: (_) => _ShareLinkDialog(code: code),
     );
   }
 
@@ -152,10 +168,16 @@ class _GuestCodesBodyState extends State<_GuestCodesBody> {
   }
 }
 
+// ============================================================================
+// GUEST CODE CARD
+// ============================================================================
+
 class _GuestCodeCard extends StatelessWidget {
   final GuestCodeModel code;
+  final VoidCallback onShare;
   final VoidCallback? onRevoke;
-  const _GuestCodeCard({required this.code, this.onRevoke});
+
+  const _GuestCodeCard({required this.code, required this.onShare, this.onRevoke});
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +213,7 @@ class _GuestCodeCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: color.withOpacity(.1), borderRadius: BorderRadius.circular(20)),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                     child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
                   ),
                 ]),
@@ -202,6 +224,13 @@ class _GuestCodeCard extends StatelessWidget {
               ],
             ),
           ),
+          // Share button — always visible for active codes
+          if (code.isActive)
+            IconButton(
+              onPressed: onShare,
+              icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.primary),
+              tooltip: 'مشاركة الرابط والـ QR',
+            ),
           if (onRevoke != null)
             TextButton.icon(
               onPressed: onRevoke,
@@ -263,11 +292,19 @@ class _GuestCodeFormDialogState extends State<_GuestCodeFormDialog> {
       _errorText = null;
     });
 
-    final success = await context.read<GuestCodeCubit>().create(vehicleId: _vehicle!.id, expiresInMinutes: _minutes);
+    final created = await context.read<GuestCodeCubit>().create(
+      vehicleId: _vehicle!.id,
+      expiresInMinutes: _minutes,
+    );
 
     if (!mounted) return;
-    if (success) {
+
+    if (created != null) {
       Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => _ShareLinkDialog(code: created),
+      );
     } else {
       final state = context.read<GuestCodeCubit>().state;
       setState(() {
@@ -377,5 +414,143 @@ class _GuestCodeFormDialogState extends State<_GuestCodeFormDialog> {
     if (m < 60) return '$m دقيقة';
     if (m < 1440) return '${m ~/ 60} ساعة';
     return '${m ~/ 1440} يوم';
+  }
+}
+
+// ============================================================================
+// SHARE LINK DIALOG  —  رابط + QR
+// ============================================================================
+
+class _ShareLinkDialog extends StatelessWidget {
+  final GuestCodeModel code;
+
+  const _ShareLinkDialog({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = _buildTrackingUrl(code.code);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header ────────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.share_outlined, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('مشاركة رمز التتبع', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                        Text(code.code, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 0.5)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: AppColors.textHint),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── QR Code ───────────────────────────────────────────
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 8, offset: Offset(0, 2))],
+                  ),
+                  child: QrImageView(
+                    data: url,
+                    version: QrVersions.auto,
+                    size: 180,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+              const Center(
+                child: Text('امسح الـ QR لفتح صفحة التتبع مباشرة',
+                    style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── Link ──────────────────────────────────────────────
+              const Text('رابط التتبع', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: SelectableText(
+                  url,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                  textDirection: TextDirection.ltr,
+                ),
+              ),
+
+              if (code.expiresAt != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_outlined, size: 13, color: AppColors.textHint),
+                    const SizedBox(width: 4),
+                    Text('ينتهي: ${code.expiresAt}', style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // ── Copy button ───────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: url));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('تم نسخ الرابط'),
+                        backgroundColor: AppColors.success,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_outlined, size: 16),
+                  label: const Text('نسخ الرابط', style: TextStyle(fontSize: 13)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -45,7 +45,6 @@ import 'features/home/presentation/screens/reports_screen.dart';
 import 'features/owner_profile/presentation/screens/profile_screen.dart';
 import 'features/manager_reports/presentation/screens/manager_reports_screen.dart';
 import 'features/guest_tracking/presentation/cubit/guest_tracking_cubit.dart';
-import 'features/guest_tracking/presentation/screens/guest_entry_screen.dart';
 import 'features/guest_tracking/presentation/screens/guest_tracking_screen.dart';
 
 class VTFMSApp extends StatelessWidget {

@@ -108,6 +108,21 @@ class SubManagerCubit extends Cubit<SubManagerState> {
     }
   }
 
+  Future<bool> resetTotp(int id) async {
+    if (isClosed) return false;
+    final current = _currentList;
+    final catalog = _currentCatalog;
+    emit(SubManagerSubmitting(current, catalog));
+    try {
+      await _ds.resetTotp(id);
+      if (!isClosed) emit(SubManagerLoaded(current, catalog));
+      return true;
+    } catch (e) {
+      if (!isClosed) emit(SubManagerError(e.toString(), current, catalog));
+      return false;
+    }
+  }
+
   Future<bool> delete(int id) async {
     if (isClosed) return false;
     final current = _currentList;

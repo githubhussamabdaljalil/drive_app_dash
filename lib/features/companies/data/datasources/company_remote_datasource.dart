@@ -72,4 +72,11 @@ class CompanyRemoteDataSource {
       res['data'] ?? res,
     );
   }
+
+  Future<void> resetTotp(int userId) async {
+    await _api.post(
+      '/admin/owner/users/$userId/reset-totp',
+      {},
+    );
+  }
 }

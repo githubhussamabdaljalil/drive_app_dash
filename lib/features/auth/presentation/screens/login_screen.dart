@@ -8,20 +8,15 @@ import '../../../../core/widgets/dashboard/auth_button.dart';
 import '../../../../core/widgets/dashboard/error_banner.dart';
 import '../../../../core/constants/app_routes.dart';
 
-/// Admin login (owner / manager).
+/// Admin login screen.
 ///
-/// Login flow:
-/// 1. Normal login -> Dashboard
-/// 2. totp_setup_required -> TOTP setup screen (QR + secret)
-/// 3. totp_required -> TOTP verification screen
-/// 4. must_change_password -> Change password screen
+/// The backend determines whether the authenticated user is:
+/// - owner
+/// - manager
+///
+/// No role is selected on the frontend.
 class LoginScreen extends StatefulWidget {
-  final String role; // 'owner' | 'manager'
-
-  const LoginScreen({
-    super.key,
-    required this.role,
-  });
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -51,22 +46,11 @@ class _LoginScreenState extends State<LoginScreen> {
         );
   }
 
-  String get _roleLabel {
-    return widget.role == 'owner' ? 'المالك' : 'المدير';
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (ctx, state) {
-        // ─────────────────────────────────────────────────────────────
-        // FIRST TIME TOTP SETUP
-        // Backend:
-        // stage = totp_setup_required
-        //
-        // We need to show:
-        // QR Code + Secret
-        // ─────────────────────────────────────────────────────────────
+        // First-time TOTP setup
         if (state is AdminTotpSetupRequired) {
           Navigator.pushNamed(
             ctx,
@@ -79,13 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // TOTP ALREADY CONFIGURED
-        // Backend:
-        // stage = totp_required
-        //
-        // Go directly to 6-digit code screen.
-        // ─────────────────────────────────────────────────────────────
+        // TOTP already configured
         else if (state is AdminTotpRequired) {
           Navigator.pushNamed(
             ctx,
@@ -94,9 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // NORMAL LOGIN SUCCESS
-        // ─────────────────────────────────────────────────────────────
+        // Login successful
         else if (state is AdminLoginSuccess) {
           Navigator.pushReplacementNamed(
             ctx,
@@ -104,11 +80,9 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // FIRST LOGIN -> CHANGE PASSWORD
-        // ─────────────────────────────────────────────────────────────
+        // First login requires password change
         else if (state is MustChangePassword) {
-          Navigator.pushNamed(
+          Navigator.pushReplacementNamed(
             ctx,
             AppRoutes.changePassword,
           );
@@ -129,58 +103,34 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                // ─────────────────────────────────────────────
-                // HEADER
-                // ─────────────────────────────────────────────
+                const Text(
+                  'مرحبًا بعودتك',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'مرحبًا بعودتك',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                const SizedBox(height: 6),
 
-                        const SizedBox(height: 3),
-
-                        Text(
-                          'تسجيل دخول كـ $_roleLabel',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    _RoleBadge(
-                      role: widget.role,
-                    ),
-                  ],
+                const Text(
+                  'سجل الدخول إلى نظام إدارة الأساطيل والمركبات',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
 
                 const SizedBox(height: 28),
 
-                // ─────────────────────────────────────────────
-                // ERROR
-                // ─────────────────────────────────────────────
-
+                // Error
                 if (error != null) ...[
                   ErrorBanner(error),
                   const SizedBox(height: 16),
                 ],
 
-                // ─────────────────────────────────────────────
-                // EMAIL
-                // ─────────────────────────────────────────────
-
+                // Email
                 const _FieldLabel(
                   'البريد الإلكتروني',
                 ),
@@ -191,15 +141,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-
                   decoration: const InputDecoration(
                     hintText: 'email@company.com',
                   ),
-
                   validator: (value) {
                     if (value == null ||
                         value.trim().isEmpty) {
-                      return 'هذا الحقل مطلوب';
+                      return 'البريد الإلكتروني مطلوب';
                     }
 
                     return null;
@@ -208,10 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                // ─────────────────────────────────────────────
-                // PASSWORD
-                // ─────────────────────────────────────────────
-
+                // Password
                 Row(
                   mainAxisAlignment:
                       MainAxisAlignment.spaceBetween,
@@ -245,21 +190,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _passCtrl,
                   obscureText: _obscure,
                   textInputAction: TextInputAction.done,
-
-                  onFieldSubmitted: (_) {
-                    _submit();
-                  },
-
+                  onFieldSubmitted: (_) => _submit(),
                   decoration: InputDecoration(
                     hintText: 'كلمة المرور',
-
                     suffixIcon: GestureDetector(
                       onTap: () {
                         setState(() {
                           _obscure = !_obscure;
                         });
                       },
-
                       child: Icon(
                         _obscure
                             ? Icons.visibility_outlined
@@ -269,7 +208,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-
                   validator: (value) {
                     if (value == null ||
                         value.isEmpty) {
@@ -282,39 +220,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 24),
 
-                // ─────────────────────────────────────────────
-                // LOGIN BUTTON
-                // ─────────────────────────────────────────────
-
                 AuthButton(
                   label: 'تسجيل الدخول',
                   onPressed: _submit,
                   isLoading: loading,
-                ),
-
-                const SizedBox(height: 20),
-
-                // ─────────────────────────────────────────────
-                // CHANGE ROLE
-                // ─────────────────────────────────────────────
-
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacementNamed(
-                        ctx,
-                        AppRoutes.roleSelector,
-                      );
-                    },
-
-                    child: const Text(
-                      '← تغيير الدور',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -325,8 +234,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-
-/// Login field label.
 class _FieldLabel extends StatelessWidget {
   final String label;
 
@@ -340,69 +247,6 @@ class _FieldLabel extends StatelessWidget {
         fontSize: 13,
         fontWeight: FontWeight.w500,
         color: AppColors.textPrimary,
-      ),
-    );
-  }
-}
-
-
-/// Owner / Manager badge.
-class _RoleBadge extends StatelessWidget {
-  final String role;
-
-  const _RoleBadge({
-    required this.role,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final (
-      Color color,
-      IconData icon,
-      String label,
-    ) = role == 'owner'
-        ? (
-            const Color(0xFF7B1FA2),
-            Icons.admin_panel_settings,
-            'مالك',
-          )
-        : (
-            AppColors.primary,
-            Icons.manage_accounts,
-            'مدير',
-          );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
-
-      decoration: BoxDecoration(
-        color: color.withOpacity(.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 14,
-          ),
-
-          const SizedBox(width: 5),
-
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

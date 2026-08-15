@@ -252,10 +252,103 @@ class _CompaniesBodyState extends State<_CompaniesBody> {
                                 company,
                               );
                             },
+                            onResetTotp: (company) {
+                              _confirmResetTotp(
+                                ctx,
+                                company,
+                              );
+                            },
                           ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  // ==========================================================================
+  // RESET TOTP CONFIRMATION
+  // ==========================================================================
+
+  void _confirmResetTotp(
+    BuildContext context,
+    CompanyModel company,
+  ) {
+    if (company.managerId == null) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.lock_reset,
+                color: AppColors.warning,
+                size: 22,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'إعادة تعيين TOTP',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'هل تريد إعادة تعيين رمز TOTP لمدير شركة "${company.name}"؟',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.6,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'إلغاء',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warning,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final success = await context
+                    .read<CompanyCubit>()
+                    .resetTotp(company.managerId!);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? 'تم إعادة تعيين TOTP بنجاح'
+                          : 'فشل إعادة تعيين TOTP',
+                    ),
+                    backgroundColor:
+                        success ? AppColors.success : AppColors.danger,
+                  ),
+                );
+              },
+              child: const Text(
+                'تأكيد',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -395,6 +488,7 @@ class _CompanyTable extends StatelessWidget {
   final void Function(CompanyModel) onEdit;
   final void Function(CompanyModel) onToggle;
   final void Function(CompanyModel) onDelete;
+  final void Function(CompanyModel) onResetTotp;
 
   const _CompanyTable({
     required this.companies,
@@ -402,6 +496,7 @@ class _CompanyTable extends StatelessWidget {
     required this.onEdit,
     required this.onToggle,
     required this.onDelete,
+    required this.onResetTotp,
   });
 
   @override
@@ -512,7 +607,7 @@ class _CompanyTable extends StatelessWidget {
                 ),
 
                 SizedBox(
-                  width: 120,
+                  width: 150,
                   child:
                       _HeaderCell(
                     'إجراءات',
@@ -554,6 +649,8 @@ class _CompanyTable extends StatelessWidget {
                           onToggle,
                       onDelete:
                           onDelete,
+                      onResetTotp:
+                          onResetTotp,
                     );
                   },
                 ),
@@ -631,11 +728,15 @@ class _CompanyRow
   final void Function(CompanyModel)
       onDelete;
 
+  final void Function(CompanyModel)
+      onResetTotp;
+
   const _CompanyRow({
     required this.company,
     required this.onEdit,
     required this.onToggle,
     required this.onDelete,
+    required this.onResetTotp,
   });
 
   @override
@@ -861,7 +962,7 @@ class _CompanyRowState
             // ================================================================
 
             SizedBox(
-              width: 120,
+              width: 150,
 
               child: Row(
                 mainAxisAlignment:
@@ -906,6 +1007,42 @@ class _CompanyRowState
                     onTap: () =>
                         widget.onToggle(
                       c,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width: 6,
+                  ),
+
+                  Tooltip(
+                    message: c.managerId != null
+                        ? 'إعادة تعيين TOTP'
+                        : 'لا يوجد مدير',
+                    child: InkWell(
+                      onTap: c.managerId != null
+                          ? () => widget.onResetTotp(c)
+                          : null,
+                      borderRadius:
+                          BorderRadius.circular(6),
+                      child: Container(
+                        padding:
+                            const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: (c.managerId != null
+                                  ? AppColors.warning
+                                  : AppColors.textHint)
+                              .withOpacity(.08),
+                          borderRadius:
+                              BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          Icons.lock_reset,
+                          size: 16,
+                          color: c.managerId != null
+                              ? AppColors.warning
+                              : AppColors.textHint,
+                        ),
+                      ),
                     ),
                   ),
 

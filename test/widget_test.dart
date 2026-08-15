@@ -8,12 +8,11 @@
 import 'package:driver_app_dash/features/auth/presentation/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:driver_app_dash/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const LoginScreen(role: ''));
+    await tester.pumpWidget(const LoginScreen());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

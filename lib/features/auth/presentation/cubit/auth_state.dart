@@ -1,35 +1,8 @@
-// part of 'auth_cubit.dart';
-
-// abstract class AuthState {}
-
-// class AuthInitial extends AuthState {}
-// class AuthLoading extends AuthState {}
-
-// class AdminLoginSuccess extends AuthState {
-//   final String? challengeToken;
-//   final UserModel? user;
-//   final String? token;
-//   AdminLoginSuccess({this.challengeToken, this.user, this.token});
-// }
-
-// class MustChangePassword extends AuthState {}
-
-// class PasswordChanged extends AuthState {}
-
-// class ResetCodeSent extends AuthState {}
-// class ResetCodeVerified extends AuthState {
-//   final String email;
-//   final String code;
-//   ResetCodeVerified(this.email, this.code);
-// }
-// class PasswordReset extends AuthState {}
-
-// class AuthLoggedOut extends AuthState {}
-// class AuthFailure extends AuthState {
-//   final String message;
-//   AuthFailure(this.message);
-// }
 part of 'auth_cubit.dart';
+
+// ===================================================================
+// BASE
+// ===================================================================
 
 abstract class AuthState {}
 
@@ -37,9 +10,20 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {}
 
-/// First time TOTP setup is required.
-/// Backend returns:
+// ===================================================================
+// TOTP SETUP
+// ===================================================================
+
+/// First-time TOTP setup.
+///
+/// Backend:
+///
 /// stage = totp_setup_required
+///
+/// Returns:
+/// - challenge_token
+/// - secret
+/// - provisioning_uri
 class AdminTotpSetupRequired extends AuthState {
   final String challengeToken;
   final String secret;
@@ -52,8 +36,14 @@ class AdminTotpSetupRequired extends AuthState {
   });
 }
 
-/// TOTP is already configured.
-/// Backend returns:
+// ===================================================================
+// TOTP REQUIRED
+// ===================================================================
+
+/// TOTP has already been configured.
+///
+/// Backend:
+///
 /// stage = totp_required
 class AdminTotpRequired extends AuthState {
   final String challengeToken;
@@ -62,6 +52,10 @@ class AdminTotpRequired extends AuthState {
     required this.challengeToken,
   });
 }
+
+// ===================================================================
+// LOGIN SUCCESS
+// ===================================================================
 
 class AdminLoginSuccess extends AuthState {
   final String? challengeToken;
@@ -75,9 +69,17 @@ class AdminLoginSuccess extends AuthState {
   });
 }
 
+// ===================================================================
+// PASSWORD
+// ===================================================================
+
 class MustChangePassword extends AuthState {}
 
 class PasswordChanged extends AuthState {}
+
+// ===================================================================
+// FORGOT PASSWORD
+// ===================================================================
 
 class ResetCodeSent extends AuthState {}
 
@@ -85,12 +87,23 @@ class ResetCodeVerified extends AuthState {
   final String email;
   final String code;
 
-  ResetCodeVerified(this.email, this.code);
+  ResetCodeVerified(
+    this.email,
+    this.code,
+  );
 }
 
 class PasswordReset extends AuthState {}
 
+// ===================================================================
+// LOGOUT
+// ===================================================================
+
 class AuthLoggedOut extends AuthState {}
+
+// ===================================================================
+// ERROR
+// ===================================================================
 
 class AuthFailure extends AuthState {
   final String message;

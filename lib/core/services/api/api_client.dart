@@ -143,6 +143,17 @@ class ApiClient {
     return _parse(res);
   }
 
+Future<Map<String, dynamic>> postEmpty(
+  String path, {
+  bool auth = true,
+}) async {
+  final res = await http.post(
+    _uri(path),
+    headers: _headers(auth: auth),
+  );
+
+  return _parse(res);
+}
   // ===========================================================================
   // PATCH
   // ===========================================================================

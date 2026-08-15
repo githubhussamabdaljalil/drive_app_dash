@@ -8,6 +8,7 @@ class SubManagerCard extends StatelessWidget {
   final SubManagerModel subManager;
   final VoidCallback onEditInfo;
   final VoidCallback onEditPermissions;
+  final VoidCallback onResetTotp;
   final VoidCallback onDelete;
 
   const SubManagerCard({
@@ -15,6 +16,7 @@ class SubManagerCard extends StatelessWidget {
     required this.subManager,
     required this.onEditInfo,
     required this.onEditPermissions,
+    required this.onResetTotp,
     required this.onDelete,
   });
 
@@ -42,6 +44,8 @@ class SubManagerCard extends StatelessWidget {
             _ActionBtn(icon: Icons.edit_outlined, color: AppColors.primary, tooltip: 'تعديل البيانات', onTap: onEditInfo),
             const SizedBox(height: 6),
             _ActionBtn(icon: Icons.vpn_key_outlined, color: AppColors.warning, tooltip: 'تعديل الصلاحيات', onTap: onEditPermissions),
+            const SizedBox(height: 6),
+            _ActionBtn(icon: Icons.lock_reset, color: AppColors.primary, tooltip: 'إعادة تعيين TOTP', onTap: onResetTotp),
             const SizedBox(height: 6),
             _ActionBtn(icon: Icons.delete_outline, color: AppColors.danger, tooltip: 'حذف', onTap: onDelete),
           ]),

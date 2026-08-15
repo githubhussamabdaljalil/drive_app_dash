@@ -10,6 +10,7 @@ class CompanyModel {
   final int driversCount;
   final int vehiclesCount;
 
+  final int? managerId;
   final String? createdAt;
   final String? updatedAt;
 
@@ -23,6 +24,7 @@ class CompanyModel {
     required this.managersCount,
     required this.driversCount,
     required this.vehiclesCount,
+    this.managerId,
     this.createdAt,
     this.updatedAt,
   });
@@ -70,6 +72,10 @@ class CompanyModel {
             json['vehicles_count']?.toString() ?? '0',
           ) ??
           0,
+
+      managerId: json['manager_id'] != null
+          ? int.tryParse(json['manager_id'].toString())
+          : null,
 
       createdAt: json['created_at']?.toString(),
 

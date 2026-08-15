@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/services/storage/local_storage_service.dart';
 
-/// Splash Screen — checks if user is already logged in
+/// Splash Screen
+///
+/// Checks whether the user is already authenticated.
+///
+/// Flow:
+/// - Token + role exists -> Dashboard
+/// - Otherwise -> Login
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -20,6 +27,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
     _setupAnimations();
     _checkAuthStatus();
   }
@@ -33,46 +41,73 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeIn,
+      ),
+    );
 
     _scaleAnimation = Tween<double>(
       begin: 0.5,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack,
+      ),
+    );
 
     _controller.forward();
   }
 
   Future<void> _checkAuthStatus() async {
-    // Wait for animation + minimum splash time
-    await Future.delayed(const Duration(seconds: 2));
+    // Minimum splash duration
+    await Future.delayed(
+      const Duration(seconds: 2),
+    );
 
     if (!mounted) return;
 
     final storage = LocalStorageService.instance;
+
     final token = storage.getToken();
     final role = storage.getRole();
 
-    if (token != null && token.isNotEmpty && role != null) {
-      // User is logged in → redirect to appropriate dashboard
+    if (token != null &&
+        token.isNotEmpty &&
+        role != null &&
+        role.isNotEmpty) {
       _navigateToHome(role);
     } else {
-      // No token → go to role selector
-      _navigateToRoleSelector();
+      _navigateToLogin();
     }
   }
 
   void _navigateToHome(String role) {
-    final route = switch (role) {
-      'owner' || 'manager' => AppRoutes.adminDashboard,
-      _ => AppRoutes.roleSelector,
-    };
+    switch (role) {
+      case 'owner':
+      case 'manager':
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.adminDashboard,
+        );
+        break;
 
-    Navigator.pushReplacementNamed(context, route);
+      default:
+        // Invalid/unknown role -> login again
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.login,
+        );
+    }
   }
 
-  void _navigateToRoleSelector() {
-    Navigator.pushReplacementNamed(context, AppRoutes.roleSelector);
+  void _navigateToLogin() {
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.login,
+    );
   }
 
   @override
@@ -96,7 +131,6 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // App Logo
                     Container(
                       width: 120,
                       height: 120,
@@ -117,9 +151,9 @@ class _SplashScreenState extends State<SplashScreen>
                         color: AppColors.primary,
                       ),
                     ),
+
                     const SizedBox(height: 32),
 
-                    // App Name
                     const Text(
                       'VTFMS',
                       style: TextStyle(
@@ -129,9 +163,9 @@ class _SplashScreenState extends State<SplashScreen>
                         letterSpacing: 2,
                       ),
                     ),
+
                     const SizedBox(height: 8),
 
-                    // Subtitle
                     const Text(
                       'نظام إدارة الأساطيل والمركبات',
                       style: TextStyle(
@@ -140,14 +174,17 @@ class _SplashScreenState extends State<SplashScreen>
                         letterSpacing: 0.5,
                       ),
                     ),
+
                     const SizedBox(height: 48),
 
-                    // Loading indicator
                     const SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
                         strokeWidth: 3,
                       ),
                     ),

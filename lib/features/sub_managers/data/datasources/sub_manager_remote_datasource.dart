@@ -33,6 +33,10 @@ class SubManagerRemoteDataSource {
     await _api.delete('/admin/manager/sub-managers/$id');
   }
 
+  Future<void> resetTotp(int id) async {
+    await _api.post('/admin/manager/sub-managers/$id/reset-totp', {});
+  }
+
   // Static catalog — no auth required.
   //
   // BUGFIX: this used to do `res['data'] as List? ?? []` and swallow any

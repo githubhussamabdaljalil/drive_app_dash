@@ -48,5 +48,10 @@ class AuthRemoteDataSource {
   Future<Map<String, dynamic>> adminMe() => _api.get('/admin/auth/me');
 
   /// POST /admin/auth/logout
-  Future<void> adminLogout() => _api.post('/admin/auth/logout', {});
+  // Future<void> adminLogout() => _api.post('/admin/auth/logout', {});
+  Future<void> adminLogout() async {
+  await ApiClient.instance.postEmpty(
+    '/admin/auth/logout',
+  );
+}
 }

@@ -3,7 +3,7 @@ class AppRoutes {
 
   // ── Auth ────────────────────────────────────────────────────────────
   static const String splash = '/';
-  static const String roleSelector = '/role-selector';
+
   static const String login = '/login';
   static const String verifyTotp = '/verify-totp';
   static const String changePassword = '/change-password';

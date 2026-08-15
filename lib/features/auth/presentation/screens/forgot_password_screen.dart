@@ -37,7 +37,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (state is ResetCodeSent)     setState(() { _email = _emailCtrl.text.trim(); _step = 1; });
         if (state is ResetCodeVerified) setState(() { _code = state.code; _step = 2; });
         if (state is PasswordReset) {
-          Navigator.pushReplacementNamed(ctx, AppRoutes.roleSelector);
+          Navigator.pushReplacementNamed(ctx, AppRoutes.login);
           ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
             content: Text('تم تغيير كلمة المرور، يمكنك تسجيل الدخول'),
             backgroundColor: AppColors.success,

@@ -20,20 +20,27 @@ class SetupTotpScreen extends StatefulWidget {
   });
 
   @override
-  State<SetupTotpScreen> createState() => _SetupTotpScreenState();
+  State<SetupTotpScreen> createState() =>
+      _SetupTotpScreenState();
 }
 
-class _SetupTotpScreenState extends State<SetupTotpScreen> {
+class _SetupTotpScreenState
+    extends State<SetupTotpScreen> {
+
   Future<void> _copySecret() async {
     await Clipboard.setData(
-      ClipboardData(text: widget.secret),
+      ClipboardData(
+        text: widget.secret,
+      ),
     );
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('تم نسخ المفتاح السري'),
+        content: Text(
+          'تم نسخ المفتاح السري',
+        ),
       ),
     );
   }
@@ -51,8 +58,10 @@ class _SetupTotpScreenState extends State<SetupTotpScreen> {
     return WebAuthLayout(
       cardWidth: 460,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
+
           const Text(
             'إعداد التحقق بخطوتين',
             style: TextStyle(
@@ -74,22 +83,30 @@ class _SetupTotpScreenState extends State<SetupTotpScreen> {
 
           const SizedBox(height: 24),
 
-          // QR Code
+          // ----------------------------------------------------------
+          // QR
+          // ----------------------------------------------------------
+
           Center(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding:
+                  const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius:
+                    BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.grey.shade200,
                 ),
               ),
               child: QrImageView(
-                data: widget.provisioningUri,
-                version: QrVersions.auto,
+                data:
+                    widget.provisioningUri,
+                version:
+                    QrVersions.auto,
                 size: 220,
-                backgroundColor: Colors.white,
+                backgroundColor:
+                    Colors.white,
               ),
             ),
           ),
@@ -134,29 +151,36 @@ class _SetupTotpScreenState extends State<SetupTotpScreen> {
 
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
+            padding:
+                const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius:
+                  BorderRadius.circular(8),
               border: Border.all(
                 color: Colors.grey.shade200,
               ),
             ),
             child: Row(
               children: [
+
                 Expanded(
                   child: Directionality(
-                    textDirection: TextDirection.ltr,
+                    textDirection:
+                        TextDirection.ltr,
                     child: Text(
                       widget.secret,
-                      style: const TextStyle(
+                      style:
+                          const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight:
+                            FontWeight.w600,
                         letterSpacing: 1.1,
-                        color: AppColors.textPrimary,
+                        color:
+                            AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -164,7 +188,8 @@ class _SetupTotpScreenState extends State<SetupTotpScreen> {
 
                 IconButton(
                   tooltip: 'نسخ',
-                  onPressed: _copySecret,
+                  onPressed:
+                      _copySecret,
                   icon: const Icon(
                     Icons.copy_outlined,
                     size: 18,
@@ -185,12 +210,18 @@ class _SetupTotpScreenState extends State<SetupTotpScreen> {
 
           Center(
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.login,
+                );
+              },
               child: const Text(
-                '← رجوع',
+                '← تسجيل الدخول من جديد',
                 style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color:
+                      AppColors.textSecondary,
                 ),
               ),
             ),

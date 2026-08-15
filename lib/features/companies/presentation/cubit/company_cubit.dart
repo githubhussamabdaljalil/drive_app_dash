@@ -189,6 +189,34 @@ class CompanyCubit extends Cubit<CompanyState> {
   }
 
   // ============================================================
+  // RESET TOTP
+  // ============================================================
+
+  Future<bool> resetTotp(int managerId) async {
+    if (isClosed) return false;
+
+    final current = _currentList;
+
+    emit(CompanySubmitting(current));
+
+    try {
+      await _ds.resetTotp(managerId);
+
+      if (!isClosed) {
+        emit(CompanyLoaded(current));
+      }
+
+      return true;
+    } catch (e) {
+      if (!isClosed) {
+        emit(CompanyError(e.toString(), current));
+      }
+
+      return false;
+    }
+  }
+
+  // ============================================================
   // CURRENT LIST
   // ============================================================
 

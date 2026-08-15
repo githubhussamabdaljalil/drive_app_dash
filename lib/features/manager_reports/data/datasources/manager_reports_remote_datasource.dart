@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+
 import '../../../../core/services/api/api_client.dart';
 import '../models/manager_reports_model.dart';
 
@@ -21,12 +23,7 @@ class ManagerReportsRemoteDataSource {
     return ManagerReportsModel.fromJson(res['data'] ?? res);
   }
 
-  /// The export endpoint returns a binary file (PDF), not JSON, so it can't
-  /// go through ApiClient's JSON parser. This builds the absolute,
-  /// filter-aware URL for the caller to open/download directly (the
-  /// backend authenticates the download via the same bearer token flow
-  /// documented for `/admin/manager/reports/export`).
-  String buildExportUrl({
+  Future<http.Response> exportReports({
     String format = 'pdf',
     int? vehicleId,
     int? driverId,
@@ -40,7 +37,7 @@ class ManagerReportsRemoteDataSource {
       'date_from': dateFrom,
       'date_to': dateTo,
     });
-    return '${ApiClient.baseUrl}/admin/manager/reports/export$qs';
+    return _api.getBytes('/admin/manager/reports/export$qs');
   }
 
   String _buildQuery(Map<String, String?> params) {

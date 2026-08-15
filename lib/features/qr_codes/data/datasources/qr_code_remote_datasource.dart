@@ -8,7 +8,7 @@ class QrCodeRemoteDataSource {
   Future<QrCodeModel?> getQrCode(int vehicleId) async {
     try {
       final res = await _api.get('/admin/manager/vehicles/$vehicleId/qr-code');
-      return QrCodeModel.fromJson(res['data'] ?? res);
+      return QrCodeModel.fromJson(res['qr_code'] ?? res['data'] ?? res);
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;
       rethrow;
@@ -19,7 +19,7 @@ class QrCodeRemoteDataSource {
   // atomically invalidated (status=reset) in the same transaction.
   Future<QrCodeModel> generateQrCode(int vehicleId) async {
     final res = await _api.post('/admin/manager/vehicles/$vehicleId/qr-code', {});
-    return QrCodeModel.fromJson(res['data'] ?? res);
+    return QrCodeModel.fromJson(res['qr_code'] ?? res['data'] ?? res);
   }
 
   // Revokes the active code without replacing it (status=deleted).

@@ -10,7 +10,11 @@ class CompanyModel {
   final int driversCount;
   final int vehiclesCount;
 
+  // ID of the company's manager
   final int? managerId;
+
+  final String? managerEmail;
+
   final String? createdAt;
   final String? updatedAt;
 
@@ -25,6 +29,7 @@ class CompanyModel {
     required this.driversCount,
     required this.vehiclesCount,
     this.managerId,
+    this.managerEmail,
     this.createdAt,
     this.updatedAt,
   });
@@ -42,44 +47,78 @@ class CompanyModel {
   factory CompanyModel.fromJson(
     Map<String, dynamic> json,
   ) {
+    // ==========================================================
+    // MANAGER
+    // ==========================================================
+
+    final managers = json['managers'];
+
+    int? managerId;
+    String? managerEmail;
+
+    if (managers is List && managers.isNotEmpty) {
+      final manager = managers.first;
+
+      if (manager is Map<String, dynamic>) {
+        managerId = int.tryParse(
+          manager['id']?.toString() ?? '',
+        );
+
+        managerEmail = manager['email']?.toString();
+      }
+    }
+
+    // ==========================================================
+    // COMPANY
+    // ==========================================================
+
     return CompanyModel(
-      id: json['id'] ?? 0,
+      id: int.tryParse(
+            json['id']?.toString() ?? '',
+          ) ??
+          0,
 
-      name: json['name'] ?? '',
+      name: json['name']?.toString() ?? '',
 
-      commercialNo: json['commercial_no']?.toString(),
+      commercialNo:
+          json['commercial_no']?.toString(),
 
-      expiryDate: json['expiry_date']?.toString(),
+      expiryDate:
+          json['expiry_date']?.toString(),
 
-      status: json['status']?.toString() ?? 'active',
+      status:
+          json['status']?.toString() ?? 'active',
 
-      deleted: json['deleted'] ?? false,
+      deleted:
+          json['deleted'] == true,
 
       managersCount:
           int.tryParse(
-            json['managers_count']?.toString() ?? '0',
-          ) ??
-          0,
+                json['managers_count']?.toString() ?? '0',
+              ) ??
+              0,
 
       driversCount:
           int.tryParse(
-            json['drivers_count']?.toString() ?? '0',
-          ) ??
-          0,
+                json['drivers_count']?.toString() ?? '0',
+              ) ??
+              0,
 
       vehiclesCount:
           int.tryParse(
-            json['vehicles_count']?.toString() ?? '0',
-          ) ??
-          0,
+                json['vehicles_count']?.toString() ?? '0',
+              ) ??
+              0,
 
-      managerId: json['manager_id'] != null
-          ? int.tryParse(json['manager_id'].toString())
-          : null,
+      managerId: managerId,
 
-      createdAt: json['created_at']?.toString(),
+      managerEmail: managerEmail,
 
-      updatedAt: json['updated_at']?.toString(),
+      createdAt:
+          json['created_at']?.toString(),
+
+      updatedAt:
+          json['updated_at']?.toString(),
     );
   }
 }

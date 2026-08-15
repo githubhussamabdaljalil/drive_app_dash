@@ -1,3 +1,4 @@
+import 'package:driver_app_dash/core/utils/file_download_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,7 +10,6 @@ import '../cubit/manager_reports_cubit.dart';
 import '../widgets/manager_reports_filter_bar.dart';
 import '../widgets/manager_reports_overview_row.dart';
 import '../widgets/report_status_breakdown_card.dart';
-import '../widgets/export_link_dialog.dart';
 
 /// Manager's own reports screen — GET /admin/manager/reports, company
 /// scoped. Every figure on this page comes from that response; there is
@@ -43,37 +43,50 @@ class _ManagerReportsBodyState extends State<_ManagerReportsBody> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ManagerReportsCubit, ManagerReportsState>(
-      builder: (ctx, state) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Header(onExport: () => _export(ctx)),
-              const SizedBox(height: 18),
-              const ManagerReportsFilterBar(),
-              const SizedBox(height: 24),
-              if (state is ManagerReportsLoading) const _LoadingBlock(),
-              if (state is ManagerReportsError)
-                _ErrorBlock(message: state.message, onRetry: () => ctx.read<ManagerReportsCubit>().load()),
-              if (state is ManagerReportsLoaded) _ReportsContent(reports: state.reports),
-            ],
-          ),
-        );
+    return BlocListener<ManagerReportsCubit, ManagerReportsState>(
+      listener: (ctx, state) {
+        if (state is ManagerReportsExported) {
+          final now = DateTime.now();
+          final date = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          FileDownloadHelper.downloadPdf(state.bytes, fileName: 'manager_reports_$date.pdf');
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(content: Text('تم تصدير التقرير بنجاح')),
+          );
+        }
+        if (state is ManagerReportsError) {
+          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.message)));
+        }
       },
+      child: BlocBuilder<ManagerReportsCubit, ManagerReportsState>(
+        builder: (ctx, state) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Header(onExport: () => ctx.read<ManagerReportsCubit>().exportReports(), exporting: state is ManagerReportsExporting),
+                const SizedBox(height: 18),
+                const ManagerReportsFilterBar(),
+                const SizedBox(height: 24),
+                if (state is ManagerReportsLoading) const _LoadingBlock(),
+                if (state is ManagerReportsExporting) const _LoadingBlock(message: 'جاري تجهيز التقرير...'),
+                if (state is ManagerReportsError)
+                  _ErrorBlock(message: state.message, onRetry: () => ctx.read<ManagerReportsCubit>().load()),
+                if (state is ManagerReportsLoaded) _ReportsContent(reports: state.reports),
+                if (state is ManagerReportsExporting && state.reports != null) _ReportsContent(reports: state.reports!),
+              ],
+            ),
+          );
+        },
+      ),
     );
-  }
-
-  void _export(BuildContext context) {
-    final url = context.read<ManagerReportsCubit>().buildExportUrl();
-    showExportLinkDialog(context, url: url, format: 'pdf');
   }
 }
 
 class _Header extends StatelessWidget {
   final VoidCallback onExport;
-  const _Header({required this.onExport});
+  final bool exporting;
+  const _Header({required this.onExport, required this.exporting});
 
   @override
   Widget build(BuildContext context) {
@@ -90,12 +103,15 @@ class _Header extends StatelessWidget {
           ),
         ),
         ElevatedButton.icon(
-          onPressed: onExport,
-          icon: const Icon(Icons.download_outlined, size: 16),
-          label: const Text('تصدير PDF', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          onPressed: exporting ? null : onExport,
+          icon: exporting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.download_outlined, size: 16),
+          label: Text(exporting ? 'جاري التصدير...' : 'تصدير PDF', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.primary.withOpacity(.6),
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             minimumSize: const Size(120, 40),
@@ -138,11 +154,16 @@ class _ReportsContent extends StatelessWidget {
 }
 
 class _LoadingBlock extends StatelessWidget {
-  const _LoadingBlock();
+  final String message;
+  const _LoadingBlock({this.message = 'جاري تحميل التقارير...'});
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
-        child: Center(child: CircularProgressIndicator()),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 80),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 14),
+          Text(message, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        ])),
       );
 }
 

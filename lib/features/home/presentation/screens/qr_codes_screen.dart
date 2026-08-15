@@ -386,19 +386,7 @@ class _QrPanel extends StatelessWidget {
                               errorCorrectionLevel: QrErrorCorrectLevel.M,
                             ),
 
-                            const SizedBox(height: 16),
-
-                            const Text(
-                              'امسح رمز QR لربط المركبة',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
 
                             // Actual QR code text
                             SelectableText(
@@ -409,6 +397,18 @@ class _QrPanel extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 2,
                                 color: AppColors.textSecondary,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            const Text(
+                              'امسح رمز QR لربط المركبة',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ],

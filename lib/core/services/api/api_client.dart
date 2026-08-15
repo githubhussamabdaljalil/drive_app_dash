@@ -116,10 +116,10 @@ class ApiClient {
   // GET
   // ===========================================================================
 
-  Future<Map<String, dynamic>> get(String path) async {
+  Future<Map<String, dynamic>> get(String path, {bool auth = true}) async {
     final res = await http.get(
       _uri(path),
-      headers: _headers(),
+      headers: _headers(auth: auth),
     );
 
     return _parse(res);

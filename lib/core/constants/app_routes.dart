@@ -24,4 +24,8 @@ class AppRoutes {
   static const String notifications = '/admin/notifications';
   static const String reports = '/admin/reports';
   static const String profile = '/admin/profile';
+
+  // ── Guest ────────────────────────────────────────────────────────────
+  static const String guest = '/guest';
+  static const String guestTrack = '/guest/track';
 }

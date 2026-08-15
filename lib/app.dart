@@ -44,6 +44,9 @@ import 'features/home/presentation/screens/reports_screen.dart';
 
 import 'features/owner_profile/presentation/screens/profile_screen.dart';
 import 'features/manager_reports/presentation/screens/manager_reports_screen.dart';
+import 'features/guest_tracking/presentation/cubit/guest_tracking_cubit.dart';
+import 'features/guest_tracking/presentation/screens/guest_entry_screen.dart';
+import 'features/guest_tracking/presentation/screens/guest_tracking_screen.dart';
 
 class VTFMSApp extends StatelessWidget {
   const VTFMSApp({super.key});
@@ -350,10 +353,30 @@ class VTFMSApp extends StatelessWidget {
               );
 
             // ========================================================
-            // UNKNOWN ROUTE
+            // GUEST TRACKING
             // ========================================================
 
+            case AppRoutes.guest:
+              return _r(
+                settings,
+                const GuestEntryScreen(),
+              );
+
             default:
+              // Handle /guest/track/:guestCode
+              final name = settings.name ?? '';
+              if (name.startsWith('${AppRoutes.guestTrack}/')) {
+                final guestCode = name.substring('${AppRoutes.guestTrack}/'.length);
+                if (guestCode.isNotEmpty) {
+                  return _r(
+                    settings,
+                    BlocProvider(
+                      create: (_) => GuestTrackingCubit(),
+                      child: GuestTrackingScreen(guestCode: guestCode),
+                    ),
+                  );
+                }
+              }
               return _r(
                 settings,
                 const LoginScreen(),

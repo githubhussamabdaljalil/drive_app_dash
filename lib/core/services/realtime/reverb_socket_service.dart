@@ -248,7 +248,14 @@ class ReverbSocketService {
       // Re-subscribe to every channel that was registered before this
       // (re)connect — covers both first connect and reconnects.
       for (final name in _channelHandlers.keys) {
-        _authorizeAndSubscribe(name);
+        if (name.startsWith('private-')) {
+          _authorizeAndSubscribe(name);
+        } else {
+          _sendFrame({
+            'event': 'pusher:subscribe',
+            'data': {'channel': name},
+          });
+        }
       }
 
       return;
@@ -430,6 +437,26 @@ class ReverbSocketService {
   // ==========================================================================
   // SUBSCRIBE / UNSUBSCRIBE (private channels only)
   // ==========================================================================
+
+  /// Registers [handlers] for a **public** channel and subscribes right away
+  /// if already connected. Public channels don't need auth.
+  void subscribePublic(
+    String channelName,
+    Map<String, RealtimeEventHandler> handlers,
+  ) {
+    if (_disposed) return;
+
+    _channelHandlers[channelName] = handlers;
+
+    _log('Registered public channel: $channelName');
+
+    if (_socketId != null) {
+      _sendFrame({
+        'event': 'pusher:subscribe',
+        'data': {'channel': channelName},
+      });
+    }
+  }
 
   /// Registers [handlers] (event name -> callback) for [channelName] and
   /// subscribes right away if already connected. Safe to call before

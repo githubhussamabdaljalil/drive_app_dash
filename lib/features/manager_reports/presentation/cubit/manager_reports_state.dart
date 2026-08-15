@@ -15,3 +15,14 @@ class ManagerReportsError extends ManagerReportsState {
   final String message;
   ManagerReportsError(this.message);
 }
+
+class ManagerReportsExporting extends ManagerReportsState {
+  final ManagerReportsModel? reports;
+  ManagerReportsExporting({this.reports});
+}
+
+class ManagerReportsExported extends ManagerReportsState {
+  final Uint8List bytes;
+  final ManagerReportsModel? reports;
+  ManagerReportsExported({required this.bytes, this.reports});
+}

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/datasources/manager_reports_remote_datasource.dart';
@@ -14,6 +16,7 @@ class ManagerReportsCubit extends Cubit<ManagerReportsState> {
   int? _driverId;
   String? _dateFrom;
   String? _dateTo;
+  ManagerReportsModel? _currentReports;
 
   int? get vehicleId => _vehicleId;
   int? get driverId => _driverId;
@@ -35,13 +38,13 @@ class ManagerReportsCubit extends Cubit<ManagerReportsState> {
         dateFrom: _dateFrom,
         dateTo: _dateTo,
       );
+      _currentReports = reports;
       if (!isClosed) emit(ManagerReportsLoaded(reports));
     } catch (e) {
       if (!isClosed) emit(ManagerReportsError(e.toString()));
     }
   }
 
-  /// Clears all filters and reloads.
   Future<void> clearFilters() async {
     _vehicleId = null;
     _driverId = null;
@@ -50,11 +53,25 @@ class ManagerReportsCubit extends Cubit<ManagerReportsState> {
     await load();
   }
 
-  String buildExportUrl({String format = 'pdf'}) => _ds.buildExportUrl(
-        format: format,
+  Future<void> exportReports() async {
+    if (isClosed) return;
+    emit(ManagerReportsExporting(reports: _currentReports));
+    try {
+      final response = await _ds.exportReports(
         vehicleId: _vehicleId,
         driverId: _driverId,
         dateFrom: _dateFrom,
         dateTo: _dateTo,
       );
+      if (!isClosed) {
+        emit(ManagerReportsExported(bytes: Uint8List.fromList(response.bodyBytes), reports: _currentReports));
+        if (_currentReports != null) emit(ManagerReportsLoaded(_currentReports!));
+      }
+    } catch (e) {
+      if (!isClosed) {
+        emit(ManagerReportsError(e.toString()));
+        if (_currentReports != null) emit(ManagerReportsLoaded(_currentReports!));
+      }
+    }
+  }
 }

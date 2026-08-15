@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dashboard/dashboard_layout.dart';
@@ -427,6 +429,33 @@ class _DestinationFormDialogState extends State<_DestinationFormDialog> {
                   const SizedBox(height: 14),
                 ],
 
+                // ── Map picker button ──────────────────────────────
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDialog<LatLng>(
+                      context: context,
+                      builder: (_) => _MapPickerDialog(
+                        initial: (_lat.text.isNotEmpty && _lng.text.isNotEmpty)
+                            ? LatLng(
+                                double.tryParse(_lat.text) ?? 33.5138,
+                                double.tryParse(_lng.text) ?? 36.2765,
+                              )
+                            : null,
+                      ),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _lat.text = picked.latitude.toStringAsFixed(6);
+                        _lng.text = picked.longitude.toStringAsFixed(6);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.map_outlined, size: 16),
+                  label: const Text('اختر من الخريطة', style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 42)),
+                ),
+                const SizedBox(height: 14),
+
                 AppTextField(
                   label: 'خط العرض (Latitude)',
                   hint: '33.5138',
@@ -463,6 +492,198 @@ class _DestinationFormDialogState extends State<_DestinationFormDialog> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// MAP PICKER DIALOG
+// ============================================================================
+
+class _MapPickerDialog extends StatefulWidget {
+  final LatLng? initial;
+  const _MapPickerDialog({this.initial});
+
+  @override
+  State<_MapPickerDialog> createState() => _MapPickerDialogState();
+}
+
+class _MapPickerDialogState extends State<_MapPickerDialog> {
+  static const _defaultCenter = LatLng(33.5138, 36.2765);
+
+  late LatLng? _picked;
+
+  @override
+  void initState() {
+    super.initState();
+    _picked = widget.initial;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final center = _picked ?? widget.initial ?? _defaultCenter;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      insetPadding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700, maxHeight: 560),
+        child: Column(
+          children: [
+            // ── Header ──────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.map_outlined, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('اختر الوجهة من الخريطة',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                        Text('اضغط على أي نقطة لتحديدها',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: AppColors.textHint),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Map ─────────────────────────────────────────────────
+            Expanded(
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: center,
+                      initialZoom: _picked != null ? 14 : 11,
+                      minZoom: 3,
+                      maxZoom: 18,
+                      onTap: (_, point) => setState(() => _picked = point),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.vtfms.driver_app_dash',
+                      ),
+                      if (_picked != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: _picked!,
+                              width: 40,
+                              height: 48,
+                              child: const Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.location_on, color: AppColors.danger, size: 36),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+
+                  // Coordinates overlay
+                  if (_picked != null)
+                    Positioned(
+                      top: 12,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border),
+                            boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 6, offset: Offset(0, 2))],
+                          ),
+                          child: Text(
+                            '${_picked!.latitude.toStringAsFixed(6)},  ${_picked!.longitude.toStringAsFixed(6)}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                            textDirection: TextDirection.ltr,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Hint when nothing picked
+                  if (_picked == null)
+                    Positioned(
+                      bottom: 20,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Text(
+                            'اضغط على الخريطة لتحديد الوجهة',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Footer ──────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('إلغاء', style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _picked == null ? null : () => Navigator.pop(context, _picked),
+                      icon: const Icon(Icons.check, size: 16),
+                      label: const Text('تأكيد الموقع', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.border,
+                        elevation: 0,
+                        minimumSize: const Size(double.infinity, 42),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

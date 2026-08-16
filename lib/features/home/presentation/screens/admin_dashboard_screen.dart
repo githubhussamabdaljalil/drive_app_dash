@@ -17,8 +17,7 @@ class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  State<AdminDashboardScreen> createState() =>
-      _AdminDashboardScreenState();
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
@@ -56,11 +55,9 @@ class _DashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        LocalStorageService.instance.getName() ?? 'المستخدم';
+    final name = LocalStorageService.instance.getName() ?? 'المستخدم';
 
-    final role =
-        LocalStorageService.instance.getRole() ?? 'owner';
+    final role = LocalStorageService.instance.getRole() ?? 'owner';
 
     final isOwner = role == 'owner';
 
@@ -72,23 +69,15 @@ class _DashboardBody extends StatelessWidget {
           // ==================================================================
           // WELCOME
           // ==================================================================
-
-          _WelcomeBanner(
-            name: name,
-            role: role,
-            isOwner: isOwner,
-          ),
+          _WelcomeBanner(name: name, role: role, isOwner: isOwner),
 
           const SizedBox(height: 28),
 
           // ==================================================================
           // OWNER
           // ==================================================================
-
           if (isOwner) ...[
-            const _SectionTitle(
-              'نظرة عامة على المنصة',
-            ),
+            const _SectionTitle('نظرة عامة على المنصة'),
 
             const SizedBox(height: 14),
 
@@ -102,29 +91,21 @@ class _DashboardBody extends StatelessWidget {
                   return _ErrorCard(
                     message: state.message,
                     onRetry: () {
-                      context
-                          .read<OwnerReportsCubit>()
-                          .loadReports();
+                      context.read<OwnerReportsCubit>().loadReports();
                     },
                   );
                 }
 
                 if (state is OwnerReportsLoaded) {
-                  return _OwnerStatsRow(
-                    reports: state.reports,
-                  );
+                  return _OwnerStatsRow(reports: state.reports);
                 }
 
                 if (state is OwnerReportsExporting) {
-                  return _OwnerStatsRow(
-                    reports: state.reports,
-                  );
+                  return _OwnerStatsRow(reports: state.reports);
                 }
 
                 if (state is OwnerReportsExported) {
-                  return _OwnerStatsRow(
-                    reports: state.reports,
-                  );
+                  return _OwnerStatsRow(reports: state.reports);
                 }
 
                 return const _LoadingStatsRow();
@@ -133,15 +114,11 @@ class _DashboardBody extends StatelessWidget {
 
             const SizedBox(height: 28),
           ]
-
           // ==================================================================
           // MANAGER
           // ==================================================================
-
           else ...[
-            const _SectionTitle(
-              'نظرة عامة على الشركة',
-            ),
+            const _SectionTitle('نظرة عامة على الشركة'),
 
             const SizedBox(height: 14),
 
@@ -155,17 +132,13 @@ class _DashboardBody extends StatelessWidget {
                   return _ErrorCard(
                     message: state.message,
                     onRetry: () {
-                      context
-                          .read<ManagerReportsCubit>()
-                          .load();
+                      context.read<ManagerReportsCubit>().load();
                     },
                   );
                 }
 
                 if (state is ManagerReportsLoaded) {
-                  return _ManagerStatsRow(
-                    reports: state.reports,
-                  );
+                  return _ManagerStatsRow(reports: state.reports);
                 }
 
                 return const _LoadingStatsRow();
@@ -178,16 +151,11 @@ class _DashboardBody extends StatelessWidget {
           // ==================================================================
           // QUICK ACTIONS
           // ==================================================================
-
-          const _SectionTitle(
-            'الإجراءات السريعة',
-          ),
+          const _SectionTitle('الإجراءات السريعة'),
 
           const SizedBox(height: 14),
 
-          _QuickActionsGrid(
-            isOwner: isOwner,
-          ),
+          _QuickActionsGrid(isOwner: isOwner),
         ],
       ),
     );
@@ -216,10 +184,7 @@ class _WelcomeBanner extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryDark,
-            AppColors.primary,
-          ],
+          colors: [AppColors.primaryDark, AppColors.primary],
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
         ),
@@ -236,8 +201,7 @@ class _WelcomeBanner extends StatelessWidget {
         children: [
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'مرحباً، $name 👋',
@@ -263,9 +227,7 @@ class _WelcomeBanner extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                _RoleBadge(
-                  role: role,
-                ),
+                _RoleBadge(role: role),
               ],
             ),
           ),
@@ -290,32 +252,18 @@ class _WelcomeBanner extends StatelessWidget {
                   reports = state.reports;
                 }
 
-                final totalCompanies =
-                    reports?.length ?? 0;
+                final totalCompanies = reports?.length ?? 0;
 
-                final activeCompanies = reports
-                        ?.where(
-                          (r) =>
-                              r.companyStatus ==
-                              'active',
-                        )
-                        .length ??
+                final activeCompanies =
+                    reports?.where((r) => r.companyStatus == 'active').length ??
                     0;
 
-                final totalVehicles = reports
-                        ?.fold<int>(
-                          0,
-                          (sum, r) =>
-                              sum + r.vehiclesCount,
-                        ) ??
+                final totalVehicles =
+                    reports?.fold<int>(0, (sum, r) => sum + r.vehiclesCount) ??
                     0;
 
-                final totalDrivers = reports
-                        ?.fold<int>(
-                          0,
-                          (sum, r) =>
-                              sum + r.driversCount,
-                        ) ??
+                final totalDrivers =
+                    reports?.fold<int>(0, (sum, r) => sum + r.driversCount) ??
                     0;
 
                 return Row(
@@ -323,42 +271,33 @@ class _WelcomeBanner extends StatelessWidget {
                   children: [
                     _BannerStat(
                       label: 'شركة نشطة',
-                      value: reports == null
-                          ? '--'
-                          : '$activeCompanies',
+                      value: reports == null ? '--' : '$activeCompanies',
                     ),
 
                     const SizedBox(width: 12),
 
                     _BannerStat(
                       label: 'مركبة',
-                      value: reports == null
-                          ? '--'
-                          : '$totalVehicles',
+                      value: reports == null ? '--' : '$totalVehicles',
                     ),
 
                     const SizedBox(width: 12),
 
                     _BannerStat(
                       label: 'سائق',
-                      value: reports == null
-                          ? '--'
-                          : '$totalDrivers',
+                      value: reports == null ? '--' : '$totalDrivers',
                     ),
                   ],
                 );
               },
             )
-
           // MANAGER BANNER STATS
           else
-            BlocBuilder<ManagerReportsCubit,
-                ManagerReportsState>(
+            BlocBuilder<ManagerReportsCubit, ManagerReportsState>(
               builder: (context, state) {
-                final loaded =
-                    state is ManagerReportsLoaded
-                        ? state.reports
-                        : null;
+                final loaded = state is ManagerReportsLoaded
+                    ? state.reports
+                    : null;
 
                 return Row(
                   mainAxisSize: MainAxisSize.min,
@@ -374,9 +313,7 @@ class _WelcomeBanner extends StatelessWidget {
 
                     _BannerStat(
                       label: 'سائق',
-                      value: loaded != null
-                          ? '${loaded.driversCount}'
-                          : '--',
+                      value: loaded != null ? '${loaded.driversCount}' : '--',
                     ),
                   ],
                 );
@@ -396,24 +333,16 @@ class _BannerStat extends StatelessWidget {
   final String label;
   final String value;
 
-  const _BannerStat({
-    required this.label,
-    required this.value,
-  });
+  const _BannerStat({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(.2),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(.2)),
       ),
       child: Column(
         children: [
@@ -430,10 +359,7 @@ class _BannerStat extends StatelessWidget {
 
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.white70,
-            ),
+            style: const TextStyle(fontSize: 11, color: Colors.white70),
           ),
         ],
       ),
@@ -448,47 +374,27 @@ class _BannerStat extends StatelessWidget {
 class _RoleBadge extends StatelessWidget {
   final String role;
 
-  const _RoleBadge({
-    required this.role,
-  });
+  const _RoleBadge({required this.role});
 
   @override
   Widget build(BuildContext context) {
     final (label, icon) = switch (role) {
-      'owner' => (
-          'مالك المنصة',
-          Icons.verified_outlined,
-        ),
-      'manager' => (
-          'مدير الأسطول',
-          Icons.manage_accounts_outlined,
-        ),
-      _ => (
-          'مستخدم',
-          Icons.person_outline,
-        ),
+      'owner' => ('مالك المنصة', Icons.verified_outlined),
+      'manager' => ('مدير الأسطول', Icons.manage_accounts_outlined),
+      _ => ('مستخدم', Icons.person_outline),
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(.2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(.3),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 14,
-          ),
+          Icon(icon, color: Colors.white, size: 14),
 
           const SizedBox(width: 6),
 
@@ -550,18 +456,14 @@ class _SectionTitle extends StatelessWidget {
 class _OwnerStatsRow extends StatelessWidget {
   final List<OwnerReportModel> reports;
 
-  const _OwnerStatsRow({
-    required this.reports,
-  });
+  const _OwnerStatsRow({required this.reports});
 
   @override
   Widget build(BuildContext context) {
     final totalCompanies = reports.length;
 
     final activeCompanies = reports
-        .where(
-          (r) => r.companyStatus == 'active',
-        )
+        .where((r) => r.companyStatus == 'active')
         .length;
 
     final totalVehicles = reports.fold<int>(
@@ -574,25 +476,16 @@ class _OwnerStatsRow extends StatelessWidget {
       (sum, r) => sum + r.activeVehiclesCount,
     );
 
-    final totalDrivers = reports.fold<int>(
-      0,
-      (sum, r) => sum + r.driversCount,
-    );
+    final totalDrivers = reports.fold<int>(0, (sum, r) => sum + r.driversCount);
 
     final totalManagers = reports.fold<int>(
       0,
       (sum, r) => sum + r.managersCount,
     );
 
-    final totalSos = reports.fold<int>(
-      0,
-      (sum, r) => sum + r.sos.total,
-    );
+    final totalSos = reports.fold<int>(0, (sum, r) => sum + r.sos.total);
 
-    final activeSos = reports.fold<int>(
-      0,
-      (sum, r) => sum + r.sos.active,
-    );
+    final activeSos = reports.fold<int>(0, (sum, r) => sum + r.sos.active);
 
     final totalAttendance = reports.fold<int>(
       0,
@@ -608,10 +501,9 @@ class _OwnerStatsRow extends StatelessWidget {
             value: '$totalCompanies',
             sub: '$activeCompanies نشطة',
             color: AppColors.primary,
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.companies,
               (r) => false,
@@ -628,7 +520,7 @@ class _OwnerStatsRow extends StatelessWidget {
             value: '$totalVehicles',
             sub: '$activeVehicles نشطة',
             color: const Color(0xFF7B1FA2),
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
           ),
         ),
@@ -642,14 +534,8 @@ class _OwnerStatsRow extends StatelessWidget {
             value: '$totalDrivers',
             sub: '$totalManagers مدير',
             color: AppColors.success,
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.drivers,
-              (r) => false,
-            ),
           ),
         ),
 
@@ -662,14 +548,8 @@ class _OwnerStatsRow extends StatelessWidget {
             value: '$totalSos',
             sub: '$activeSos نشطة',
             color: AppColors.danger,
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.sosEvents,
-              (r) => false,
-            ),
           ),
         ),
 
@@ -682,14 +562,8 @@ class _OwnerStatsRow extends StatelessWidget {
             value: '$totalAttendance',
             sub: 'سجل حضور',
             color: AppColors.warning,
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.reports,
-              (r) => false,
-            ),
           ),
         ),
       ],
@@ -704,9 +578,7 @@ class _OwnerStatsRow extends StatelessWidget {
 class _ManagerStatsRow extends StatelessWidget {
   final ManagerReportsModel reports;
 
-  const _ManagerStatsRow({
-    required this.reports,
-  });
+  const _ManagerStatsRow({required this.reports});
 
   @override
   Widget build(BuildContext context) {
@@ -719,10 +591,9 @@ class _ManagerStatsRow extends StatelessWidget {
             value: '${reports.vehiclesCount}',
             sub: '${reports.activeVehiclesCount} نشطة',
             color: AppColors.primary,
-            trend: 'مباشر من الخادم',
+            trend: "",
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.vehicles,
               (r) => false,
@@ -739,10 +610,9 @@ class _ManagerStatsRow extends StatelessWidget {
             value: '${reports.driversCount}',
             sub: '${reports.managersCount} مدير فرعي',
             color: const Color(0xFF7B1FA2),
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.drivers,
               (r) => false,
@@ -759,10 +629,9 @@ class _ManagerStatsRow extends StatelessWidget {
             value: '${reports.sos.total}',
             sub: 'ضمن كل الحالات',
             color: AppColors.danger,
-            trend: 'مباشر من الخادم',
+            trend: '',
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.sosEvents,
               (r) => false,
@@ -779,10 +648,9 @@ class _ManagerStatsRow extends StatelessWidget {
             value: '${reports.attendanceCount}',
             sub: 'سجل حضور',
             color: AppColors.warning,
-            trend: 'مباشر من الخادم',
+            trend: "",
             trendUp: null,
-            onTap: () =>
-                Navigator.pushNamedAndRemoveUntil(
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.reports,
               (r) => false,
@@ -820,8 +688,7 @@ class _StatCard extends StatefulWidget {
   });
 
   @override
-  State<_StatCard> createState() =>
-      _StatCardState();
+  State<_StatCard> createState() => _StatCardState();
 }
 
 class _StatCardState extends State<_StatCard> {
@@ -829,19 +696,17 @@ class _StatCardState extends State<_StatCard> {
 
   @override
   Widget build(BuildContext context) {
-    final trendColor =
-        widget.trendUp == null
-            ? AppColors.textHint
-            : widget.trendUp!
-                ? AppColors.success
-                : AppColors.danger;
+    final trendColor = widget.trendUp == null
+        ? AppColors.textHint
+        : widget.trendUp!
+        ? AppColors.success
+        : AppColors.danger;
 
-    final trendIcon =
-        widget.trendUp == null
-            ? Icons.remove
-            : widget.trendUp!
-                ? Icons.trending_up
-                : Icons.trending_down;
+    final trendIcon = widget.trendUp == null
+        ? Icons.remove
+        : widget.trendUp!
+        ? Icons.trending_up
+        : Icons.trending_down;
 
     return MouseRegion(
       onEnter: (_) {
@@ -857,17 +722,13 @@ class _StatCardState extends State<_StatCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _hovered
-                  ? widget.color.withOpacity(.4)
-                  : AppColors.border,
+              color: _hovered ? widget.color.withOpacity(.4) : AppColors.border,
             ),
             boxShadow: [
               BoxShadow(
@@ -880,36 +741,26 @@ class _StatCardState extends State<_StatCard> {
             ],
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color:
-                          widget.color.withOpacity(.1),
-                      borderRadius:
-                          BorderRadius.circular(10),
+                      color: widget.color.withOpacity(.1),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      widget.icon,
-                      color: widget.color,
-                      size: 20,
-                    ),
+                    child: Icon(widget.icon, color: widget.color, size: 20),
                   ),
 
                   if (widget.onTap != null)
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 12,
-                      color: _hovered
-                          ? widget.color
-                          : AppColors.textHint,
+                      color: _hovered ? widget.color : AppColors.textHint,
                     ),
                 ],
               ),
@@ -921,9 +772,7 @@ class _StatCardState extends State<_StatCard> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
-                  color: _hovered
-                      ? widget.color
-                      : AppColors.textPrimary,
+                  color: _hovered ? widget.color : AppColors.textPrimary,
                 ),
               ),
 
@@ -940,20 +789,13 @@ class _StatCardState extends State<_StatCard> {
 
               const SizedBox(height: 8),
 
-              const Divider(
-                height: 1,
-                color: AppColors.divider,
-              ),
+              const Divider(height: 1, color: AppColors.divider),
 
               const SizedBox(height: 8),
 
               Row(
                 children: [
-                  Icon(
-                    trendIcon,
-                    size: 13,
-                    color: trendColor,
-                  ),
+                  Icon(trendIcon, size: 13, color: trendColor),
 
                   const SizedBox(width: 4),
 
@@ -963,11 +805,9 @@ class _StatCardState extends State<_StatCard> {
                       style: TextStyle(
                         fontSize: 11,
                         color: trendColor,
-                        fontWeight:
-                            FontWeight.w500,
+                        fontWeight: FontWeight.w500,
                       ),
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -987,9 +827,7 @@ class _StatCardState extends State<_StatCard> {
 class _QuickActionsGrid extends StatelessWidget {
   final bool isOwner;
 
-  const _QuickActionsGrid({
-    required this.isOwner,
-  });
+  const _QuickActionsGrid({required this.isOwner});
 
   @override
   Widget build(BuildContext context) {
@@ -1046,14 +884,8 @@ class _QuickActionsGrid extends StatelessWidget {
           .map(
             (a) => Expanded(
               child: Padding(
-                padding: EdgeInsets.only(
-                  left: a == actions.last
-                      ? 0
-                      : 14,
-                ),
-                child: _QuickActionCard(
-                  def: a,
-                ),
+                padding: EdgeInsets.only(left: a == actions.last ? 0 : 14),
+                child: _QuickActionCard(def: a),
               ),
             ),
           )
@@ -1089,17 +921,13 @@ class _ActionDef {
 class _QuickActionCard extends StatefulWidget {
   final _ActionDef def;
 
-  const _QuickActionCard({
-    required this.def,
-  });
+  const _QuickActionCard({required this.def});
 
   @override
-  State<_QuickActionCard> createState() =>
-      _QuickActionCardState();
+  State<_QuickActionCard> createState() => _QuickActionCardState();
 }
 
-class _QuickActionCardState
-    extends State<_QuickActionCard> {
+class _QuickActionCardState extends State<_QuickActionCard> {
   bool _hovered = false;
 
   @override
@@ -1119,25 +947,15 @@ class _QuickActionCardState
       },
       child: GestureDetector(
         onTap: () =>
-            Navigator.pushNamedAndRemoveUntil(
-          context,
-          d.route,
-          (r) => false,
-        ),
+            Navigator.pushNamedAndRemoveUntil(context, d.route, (r) => false),
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: _hovered
-                ? d.color.withOpacity(.06)
-                : AppColors.surface,
-            borderRadius:
-                BorderRadius.circular(12),
+            color: _hovered ? d.color.withOpacity(.06) : AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _hovered
-                  ? d.color.withOpacity(.5)
-                  : AppColors.border,
+              color: _hovered ? d.color.withOpacity(.5) : AppColors.border,
               width: _hovered ? 1.5 : 1,
             ),
             boxShadow: [
@@ -1151,22 +969,16 @@ class _QuickActionCardState
             ],
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
                   color: d.color.withOpacity(.1),
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  d.icon,
-                  color: d.color,
-                  size: 22,
-                ),
+                child: Icon(d.icon, color: d.color, size: 22),
               ),
 
               const SizedBox(height: 14),
@@ -1176,9 +988,7 @@ class _QuickActionCardState
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: _hovered
-                      ? d.color
-                      : AppColors.textPrimary,
+                  color: _hovered ? d.color : AppColors.textPrimary,
                 ),
               ),
 
@@ -1201,11 +1011,8 @@ class _QuickActionCardState
                     'الانتقال',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          FontWeight.w600,
-                      color: _hovered
-                          ? d.color
-                          : AppColors.textHint,
+                      fontWeight: FontWeight.w600,
+                      color: _hovered ? d.color : AppColors.textHint,
                     ),
                   ),
 
@@ -1214,9 +1021,7 @@ class _QuickActionCardState
                   Icon(
                     Icons.arrow_forward,
                     size: 12,
-                    color: _hovered
-                        ? d.color
-                        : AppColors.textHint,
+                    color: _hovered ? d.color : AppColors.textHint,
                   ),
                 ],
               ),
@@ -1239,21 +1044,13 @@ class _LoadingStatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: _LoadingStatCard(),
-        ),
+        Expanded(child: _LoadingStatCard()),
         const SizedBox(width: 14),
-        Expanded(
-          child: _LoadingStatCard(),
-        ),
+        Expanded(child: _LoadingStatCard()),
         const SizedBox(width: 14),
-        Expanded(
-          child: _LoadingStatCard(),
-        ),
+        Expanded(child: _LoadingStatCard()),
         const SizedBox(width: 14),
-        Expanded(
-          child: _LoadingStatCard(),
-        ),
+        Expanded(child: _LoadingStatCard()),
       ],
     );
   }
@@ -1268,23 +1065,18 @@ class _LoadingStatCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius:
-                  BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
 
@@ -1295,8 +1087,7 @@ class _LoadingStatCard extends StatelessWidget {
             width: 60,
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius:
-                  BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(6),
             ),
           ),
 
@@ -1307,17 +1098,13 @@ class _LoadingStatCard extends StatelessWidget {
             width: 80,
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius:
-                  BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(6),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          Container(
-            height: 1,
-            color: AppColors.divider,
-          ),
+          Container(height: 1, color: AppColors.divider),
 
           const SizedBox(height: 8),
 
@@ -1326,8 +1113,7 @@ class _LoadingStatCard extends StatelessWidget {
             width: 100,
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius:
-                  BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(6),
             ),
           ),
         ],
@@ -1344,10 +1130,7 @@ class _ErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorCard({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorCard({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -1355,11 +1138,8 @@ class _ErrorCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.danger.withOpacity(.3),
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.danger.withOpacity(.3)),
       ),
       child: Row(
         children: [
@@ -1367,10 +1147,8 @@ class _ErrorCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color:
-                  AppColors.danger.withOpacity(.1),
-              borderRadius:
-                  BorderRadius.circular(12),
+              color: AppColors.danger.withOpacity(.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.error_outline,
@@ -1383,8 +1161,7 @@ class _ErrorCard extends StatelessWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'فشل تحميل البيانات',
@@ -1401,8 +1178,7 @@ class _ErrorCard extends StatelessWidget {
                   message,
                   style: const TextStyle(
                     fontSize: 12,
-                    color:
-                        AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -1415,21 +1191,13 @@ class _ErrorCard extends StatelessWidget {
             height: 40,
             child: ElevatedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(
-                Icons.refresh,
-                size: 16,
-              ),
-              label: const Text(
-                'إعادة المحاولة',
-              ),
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    AppColors.danger,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('إعادة المحاولة'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),

@@ -46,6 +46,7 @@ class DashboardLayout extends StatelessWidget {
               children: [
                 _TopBar(
                   title: pageTitle,
+                  role: role,
                 ),
                 Expanded(
                   child: body,
@@ -599,9 +600,11 @@ class _NavItemState extends State<_NavItem> {
 
 class _TopBar extends StatelessWidget {
   final String title;
+  final String role;
 
   const _TopBar({
     required this.title,
+    required this.role,
   });
 
   @override
@@ -638,14 +641,15 @@ class _TopBar extends StatelessWidget {
 
           const Spacer(),
 
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              size: 20,
-              color: AppColors.textSecondary,
+          if (role != 'owner')
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_outlined,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () {},
             ),
-            onPressed: () {},
-          ),
 
           const SizedBox(width: 4),
 
